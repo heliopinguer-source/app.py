@@ -15,7 +15,7 @@ st.set_page_config(
 # 🔐 CONFIGURAÇÕES PRINCIPAIS (Mude aqui)
 # =========================================================
 SENHA_ADMIN = "infohelp2026"        # Senha para acessar o painel
-NUMERO_WHATSAPP = "5515999999999"   # COLOQUE SEU NÚMERO AQUI (55 + DDD + Numero)
+NUMERO_WHATSAPP = "5515991172115"   # COLOQUE SEU NÚMERO AQUI (55 + DDD + Numero)
 # =========================================================
 
 # Limpeza do número para evitar erros de link
