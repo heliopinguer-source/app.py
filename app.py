@@ -10,7 +10,7 @@ st.set_page_config(page_title="InfoHelp Tatuí", page_icon="💻", layout="wide"
 # 🔐 CONFIGURAÇÃO DE SEGURANÇA (ALTERE AQUI)
 # =========================================================
 SENHA_MESTRE = "infohelp2026"  # <--- COLOQUE SUA SENHA AQUI
-SEU_WHATSAPP = "5515999999999" # Seu número com DDD (Ex: 5515...)
+SEU_WHATSAPP = "5515991172115" # Seu número com DDD (Ex: 5515...)
 # =========================================================
 
 # Inicializa o banco de dados na memória do navegador
