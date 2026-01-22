@@ -2,53 +2,51 @@ import streamlit as st
 import pandas as pd
 import datetime
 import urllib.parse
+import re
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="InfoHelp Tatuí", page_icon="💻", layout="wide")
 
 # =========================================================
-# 🔐 CONFIGURAÇÃO DE SEGURANÇA (ALTERE AQUI)
+# 🔐 CONFIGURAÇÃO (Mude apenas o que está entre as aspas)
 # =========================================================
-SENHA_MESTRE = "infohelp2026"  # <--- COLOQUE SUA SENHA AQUI
-SEU_WHATSAPP = "5515991172115" # Seu número com DDD (Ex: 5515...)
+SENHA_MESTRE = "infohelp2026"  
+# ABAIXO: Coloque seu número. Ex: "5515999999999"
+NUMERO_BRUTO = "5515991172115" 
 # =========================================================
 
-# Inicializa o banco de dados na memória do navegador
+# Limpeza automática do número (remove espaços, parênteses e traços)
+SEU_WHATSAPP = re.sub(r'\D', '', NUMERO_BRUTO)
+
 if "dados" not in st.session_state:
     st.session_state.dados = []
 
-# --- BARRA LATERAL (SIDEBAR) ---
+# --- BARRA LATERAL ---
 with st.sidebar:
     st.title("🛠️ InfoHelp Tatuí")
     st.write("---")
-    # O menu de navegação
     escolha = st.radio("Selecione:", ["Página do Cliente", "Área do Técnico (ADM)"])
     
-    # Campo de senha que só aparece se escolher "Área do Técnico"
     senha_digitada = ""
     if escolha == "Área do Técnico (ADM)":
         st.write("---")
-        st.subheader("Login Requerido")
-        senha_digitada = st.text_input("Digite a Senha Administrador", type="password")
+        st.subheader("Acesso Restrito")
+        senha_digitada = st.text_input("Senha Admin", type="password")
 
-# --- LÓGICA DAS PÁGINAS ---
-
+# --- LÓGICA ---
 if escolha == "Página do Cliente":
-    st.header("📋 Abertura de Chamado Técnico")
-    st.info("Preencha os dados para que possamos analisar seu equipamento.")
+    st.header("📋 Abertura de Chamado")
     
-    with st.form("form_cliente"):
+    with st.form("form_cliente", clear_on_submit=True):
         nome = st.text_input("Nome Completo")
         contato = st.text_input("Seu WhatsApp")
         equip = st.selectbox("Aparelho", ["Notebook", "PC Gamer", "Monitor", "Outro"])
         problema = st.text_area("O que está acontecendo?")
-        
         btn = st.form_submit_button("Gerar Protocolo")
         
         if btn:
             if nome and contato and problema:
                 protocolo = datetime.datetime.now().strftime("%H%M%S")
-                # Salva no banco de dados
                 st.session_state.dados.append({
                     "Prot": protocolo, "Cliente": nome, "Zap": contato, 
                     "Equip": equip, "Defeito": problema, 
@@ -57,30 +55,41 @@ if escolha == "Página do Cliente":
                 
                 st.success(f"✅ Chamado #{protocolo} aberto!")
                 
-                # Botão do WhatsApp
-                msg = f"Olá InfoHelp! Novo chamado #{protocolo} - Cliente: {nome} ({equip})"
-                link = f"https://wa.me/{SEU_WHATSAPP}?text={urllib.parse.quote(msg)}"
-                st.markdown(f'<a href="{link}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366;color:white;padding:10px;text-align:center;border-radius:5px;font-weight:bold;">ENVIAR PARA O TÉCNICO VIA WHATSAPP</div></a>', unsafe_allow_html=True)
+                # MENSAGEM FORMATADA PARA WHATSAPP
+                msg_texto = (
+                    f"*INFOHELP TATUÍ - NOVO CHAMADO*\n\n"
+                    f"*Protocolo:* {protocolo}\n"
+                    f"*Cliente:* {nome}\n"
+                    f"*Equipamento:* {equip}\n"
+                    f"*Problema:* {problema}"
+                )
+                
+                # Link seguro com wa.me
+                link_whatsapp = f"https://wa.me/{SEU_WHATSAPP}?text={urllib.parse.quote(msg_texto)}"
+                
+                st.markdown(f"""
+                    <div style="text-align:center; margin-top: 20px;">
+                        <p><strong>Clique no botão abaixo para finalizar:</strong></p>
+                        <a href="{link_whatsapp}" target="_blank" style="text-decoration:none;">
+                            <div style="background-color:#25D366; color:white; padding:15px; border-radius:10px; font-weight:bold; font-size:18px; box-shadow: 2px 2px 5px rgba(0,0,0,0.2);">
+                                💬 ENVIAR PARA O WHATSAPP DA INFOHELP
+                            </div>
+                        </a>
+                    </div>
+                """, unsafe_allow_html=True)
             else:
-                st.error("Preencha todos os campos!")
+                st.warning("⚠️ Preencha todos os campos.")
 
 elif escolha == "Área do Técnico (ADM)":
-    # 🛡️ AQUI ACONTECE A VERIFICAÇÃO DA SENHA
     if senha_digitada == SENHA_MESTRE:
-        st.header("📊 Painel de Controle Técnico")
-        st.success("Acesso Autorizado!")
-        
+        st.header("📊 Painel Técnico")
         if not st.session_state.dados:
-            st.write("Nenhum chamado pendente.")
+            st.info("Nenhum chamado pendente.")
         else:
             df = pd.DataFrame(st.session_state.dados)
             st.dataframe(df, use_container_width=True)
-            
-            if st.button("Limpar Todos os Chamados"):
+            if st.button("Limpar Lista"):
                 st.session_state.dados = []
                 st.rerun()
-    
-    elif senha_digitada == "":
-        st.warning("⚠️ Por favor, digite a senha na barra lateral esquerda para acessar os dados.")
-    else:
-        st.error("❌ Senha incorreta! O acesso aos dados dos clientes está bloqueado.")
+    elif senha_digitada != "":
+        st.error("❌ Senha incorreta.")
