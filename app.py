@@ -17,6 +17,7 @@ st.set_page_config(
 # =========================================================
 SENHA_ADMIN = "infohelp2026"
 NUMERO_WHATSAPP = "5515999999999" 
+LOGO_URL = "https://infohelptatui.com.br/wp-content/uploads/2023/06/cropped-logo-infohelp.png"
 # =========================================================
 
 SEU_WHATSAPP = re.sub(r'\D', '', NUMERO_WHATSAPP)
