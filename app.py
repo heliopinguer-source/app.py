@@ -6,18 +6,20 @@ import re
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="InfoHelp Tatuí | Suporte Profissional",
+    page_title="InfoHelp Tatuí | Sistema de Suporte",
     page_icon="💻",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# 🔐 CONFIGURAÇÕES PRINCIPAIS
+# 🔐 CONFIGURAÇÕES PRINCIPAIS (COLOQUE SEUS DADOS AQUI)
 # =========================================================
-SENHA_ADMIN = "infohelp2026"        
-NUMERO_WHATSAPP = "5515991172115"  # Substitua pelo seu número real
-LOGO_URL = "https://cdn-icons-png.flaticon.com/512/2906/2906274.png" # Substitua pelo link da sua logo real
+SENHA_ADMIN = "infohelp2026"
+# Substitua pelo seu número real (exatamente 13 dígitos)
+NUMERO_WHATSAPP = "5515991172115" 
+# Link da sua Logomarca (PNG transparente de preferência)
+LOGO_URL = "https://infohelptatui.com.br/wp-content/uploads/2023/06/cropped-logo-infohelp.png" 
 # =========================================================
 
 SEU_WHATSAPP = re.sub(r'\D', '', NUMERO_WHATSAPP)
@@ -25,154 +27,123 @@ SEU_WHATSAPP = re.sub(r'\D', '', NUMERO_WHATSAPP)
 if "db_chamados" not in st.session_state:
     st.session_state.db_chamados = []
 
-# --- DESIGN PERSONALIZADO (CSS) ---
+# --- DESIGN CUSTOMIZADO ---
 st.markdown(f"""
     <style>
-    /* Fundo e Geral */
-    .stApp {{
-        background-color: #121212;
-        color: #ffffff;
-    }}
+    .stApp {{ background-color: #0E1117; color: #ffffff; }}
     
     /* Card do Formulário */
     .stForm {{
-        background-color: #ffffff !important;
+        background-color: #1c1f26 !important;
         border-radius: 15px !important;
         padding: 30px !important;
-        box-shadow: 0px 10px 25px rgba(0,0,0,0.5) !important;
-        border: none !important;
+        border: 1px solid #3d4450 !important;
     }}
     
-    /* Textos dentro do Form (Preto para leitura) */
-    .stForm label, .stForm p, .stForm h3 {{
-        color: #121212 !important;
+    /* Inputs */
+    input, textarea, select {{
+        background-color: #262730 !important;
+        color: white !important;
+        border: 1px solid #3d4450 !important;
     }}
 
-    /* Botão de Enviar (Laranja) */
+    /* Botão Principal Laranja */
     div.stButton > button:first-child {{
         background-color: #FF6B00;
         color: white;
-        border: none;
-        padding: 15px;
-        font-size: 18px;
-        font-weight: bold;
+        width: 100%;
         border-radius: 10px;
-        transition: 0.3s;
+        font-weight: bold;
+        padding: 18px;
+        border: none;
     }}
     
     div.stButton > button:hover {{
         background-color: #E65A00;
-        border: none;
         color: white;
     }}
 
-    /* Estilo do Botão WhatsApp Final */
-    .whatsapp-link {{
-        background-color: #25D366;
-        color: white !important;
-        padding: 18px;
-        border-radius: 12px;
+    .header-container {{
         text-align: center;
-        text-decoration: none;
-        display: block;
-        font-weight: bold;
-        font-size: 20px;
-        margin-top: 20px;
-        box-shadow: 0px 4px 15px rgba(37, 211, 102, 0.4);
-    }}
-
-    /* Cabeçalho */
-    .header-box {{
-        text-align: center;
-        padding: 20px 0;
+        padding: 40px 0;
     }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- BARRA LATERAL (ADM) ---
+# --- NAVEGAÇÃO ---
 with st.sidebar:
-    st.title("⚙️ Administração")
-    aba = st.radio("Navegar:", ["📋 Área do Cliente", "🔐 Painel ADM"])
+    st.title("🛡️ Admin")
+    aba = st.radio("Selecione:", ["Página do Cliente", "Painel Gestor"])
     st.divider()
     senha_digitada = ""
-    if aba == "🔐 Painel ADM":
-        senha_digitada = st.text_input("Senha de Acesso", type="password")
+    if aba == "Painel Gestor":
+        senha_digitada = st.text_input("Senha", type="password")
 
-# --- CONTEÚDO PRINCIPAL ---
-
-if aba == "📋 Área do Cliente":
-    # Cabeçalho Profissional
+# --- CONTEÚDO ---
+if aba == "Página do Cliente":
+    # Cabeçalho com sua Logo
     st.markdown(f"""
-        <div class="header-box">
-            <img src="{LOGO_URL}" width="100">
-            <h1 style='color: #FF6B00; margin-bottom: 5px;'>INFOHELP TATUÍ</h1>
-            <p style='color: #bbbbbb; font-size: 1.1em;'>Assistência Técnica em Hardware</p>
+        <div class="header-container">
+            <img src="{LOGO_URL}" width="220">
+            <h1 style='color: #FF6B00; margin-top: 15px;'>Portal de Atendimento</h1>
+            <p style='color: #888;'>Suporte Técnico Especializado em Tatuí e Região</p>
         </div>
     """, unsafe_allow_html=True)
 
-    # Formulário em Card Branco
-    with st.form("chamado_form", clear_on_submit=True):
-        st.markdown("### 📋 Abertura de Chamado")
+    with st.form("form_suporte"):
+        st.subheader("📝 Detalhes do Chamado")
+        c1, c2 = st.columns(2)
+        with c1:
+            nome = st.text_input("Nome Completo")
+            zap_cli = st.text_input("Seu WhatsApp")
+        with c2:
+            aparelho = st.selectbox("Aparelho", ["Notebook", "PC Gamer", "Monitor", "Impressora", "Software/Rede"])
+            modelo = st.text_input("Marca/Modelo")
         
-        col1, col2 = st.columns(2)
-        with col1:
-            nome = st.text_input("Nome Completo ou Empresa")
-            zap_cli = st.text_input("WhatsApp para Contato")
-        with col2:
-            equip = st.selectbox("Tipo de Equipamento", ["Notebook", "PC Gamer", "Desktop Office", "Monitor", "Impressora", "Outro"])
-            modelo = st.text_input("Marca / Modelo (Ex: Dell Inspiron)")
+        defeito = st.text_area("O que está acontecendo com o equipamento?")
         
-        defeito = st.text_area("Descreva o problema detalhadamente")
-        
-        submit = st.form_submit_button("GERAR PROTOCOLO DE ATENDIMENTO")
+        btn = st.form_submit_button("GERAR PROTOCOLO E FINALIZAR")
 
-    if submit:
+    if btn:
         if nome and zap_cli and defeito:
-            protocolo = f"IH-{datetime.datetime.now().strftime('%d%H%M')}"
+            protocolo = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
             
-            # Salva na Memória
+            # Salva na lista
             st.session_state.db_chamados.append({
-                "ID": protocolo, "Cliente": nome, "Zap": zap_cli, 
-                "Equip": f"{equip} {modelo}", "Relato": defeito, 
-                "Data": datetime.datetime.now().strftime("%d/%m - %H:%M")
+                "ID": protocolo, "Cliente": nome, "Equip": f"{aparelho} {modelo}", 
+                "Problema": defeito, "Data": datetime.datetime.now().strftime("%d/%m %H:%M")
             })
 
-            # Prepara Mensagem WhatsApp
-            msg_texto = (
-                f"*NOVO CHAMADO - INFOHELP TATUÍ*\n"
-                f"----------------------------------\n"
+            # Texto do Zap
+            msg = (
+                f"*NOVO CHAMADO - INFOHELP*\n"
                 f"*Protocolo:* {protocolo}\n"
                 f"*Cliente:* {nome}\n"
-                f"*Aparelho:* {equip} {modelo}\n"
-                f"*Defeito:* {defeito}\n"
-                f"----------------------------------"
+                f"*Aparelho:* {aparelho} {modelo}\n"
+                f"*Defeito:* {defeito}"
             )
-            link_whatsapp = f"https://wa.me/{SEU_WHATSAPP}?text={urllib.parse.quote(msg_texto)}"
+            link = f"https://wa.me/{SEU_WHATSAPP}?text={urllib.parse.quote(msg)}"
             
-            st.balloons()
+            st.success(f"Protocolo #{protocolo} gerado!")
             st.markdown(f"""
-                <div style="background: #1e1e1e; padding: 25px; border-radius: 15px; border-left: 5px solid #FF6B00; margin-top: 20px;">
-                    <h3 style="color: #FF6B00; margin-top:0;">✅ Quase lá, {nome}!</h3>
-                    <p style="color: #ffffff;">O protocolo <strong>#{protocolo}</strong> foi gerado. Clique no botão abaixo para nos enviar os detalhes via WhatsApp e confirmar seu atendimento.</p>
-                    <a href="{link_whatsapp}" target="_blank" class="whatsapp-link">
-                        💬 FINALIZAR NO WHATSAPP
-                    </a>
-                </div>
+                <a href="{link}" target="_blank" style="text-decoration:none;">
+                    <div style="background-color:#25D366; color:white; padding:20px; border-radius:10px; text-align:center; font-weight:bold; font-size:1.2em;">
+                        💬 CLIQUE AQUI PARA ENVIAR NO WHATSAPP
+                    </div>
+                </a>
             """, unsafe_allow_html=True)
         else:
-            st.error("⚠️ Por favor, preencha todos os campos obrigatórios.")
+            st.error("Por favor, preencha todos os campos!")
 
-elif aba == "🔐 Painel ADM":
+elif aba == "Painel Gestor":
     if senha_digitada == SENHA_ADMIN:
-        st.header("📊 Painel de Controle Técnico")
-        if not st.session_state.db_chamados:
-            st.info("Nenhum chamado registrado até o momento.")
-        else:
-            df = pd.DataFrame(st.session_state.db_chamados)
-            st.dataframe(df, use_container_width=True)
-            
-            if st.button("Limpar Todos os Dados"):
+        st.header("📊 Chamados do Dia")
+        if st.session_state.db_chamados:
+            st.table(pd.DataFrame(st.session_state.db_chamados))
+            if st.button("Limpar Banco de Dados"):
                 st.session_state.db_chamados = []
                 st.rerun()
+        else:
+            st.info("Nenhum chamado pendente.")
     elif senha_digitada != "":
         st.error("Senha incorreta.")
