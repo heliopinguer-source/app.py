@@ -1,25 +1,23 @@
 import streamlit as st
-import pandas as pd
+import pd
 import datetime
 import urllib.parse
 import re
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="InfoHelp Tatuí | Sistema de Suporte",
+    page_title="InfoHelp Tatuí | Suporte",
     page_icon="💻",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# 🔐 CONFIGURAÇÕES PRINCIPAIS (COLOQUE SEUS DADOS AQUI)
+# 🔐 CONFIGURAÇÕES (MUDE AQUI)
 # =========================================================
 SENHA_ADMIN = "infohelp2026"
-# Substitua pelo seu número real (exatamente 13 dígitos)
-NUMERO_WHATSAPP = "5515991172115" 
-# Link da sua Logomarca (PNG transparente de preferência)
-LOGO_URL = "https://infohelptatui.com.br/wp-content/uploads/2023/06/cropped-logo-infohelp.png" 
+NUMERO_WHATSAPP = "5515999999999" # Seu número real aqui
+LOGO_URL = "https://infohelptatui.com.br/wp-content/uploads/2023/06/cropped-logo-infohelp.png"
 # =========================================================
 
 SEU_WHATSAPP = re.sub(r'\D', '', NUMERO_WHATSAPP)
@@ -27,10 +25,10 @@ SEU_WHATSAPP = re.sub(r'\D', '', NUMERO_WHATSAPP)
 if "db_chamados" not in st.session_state:
     st.session_state.db_chamados = []
 
-# --- DESIGN CUSTOMIZADO ---
+# --- ESTILO CSS PARA O BOTÃO LARANJA SEMPRE VISÍVEL ---
 st.markdown(f"""
     <style>
-    .stApp {{ background-color: #0E1117; color: #ffffff; }}
+    .stApp {{ background-color: #0E1117; }}
     
     /* Card do Formulário */
     .stForm {{
@@ -39,111 +37,89 @@ st.markdown(f"""
         padding: 30px !important;
         border: 1px solid #3d4450 !important;
     }}
-    
-    /* Inputs */
-    input, textarea, select {{
-        background-color: #262730 !important;
-        color: white !important;
-        border: 1px solid #3d4450 !important;
-    }}
 
-    /* Botão Principal Laranja */
-    div.stButton > button:first-child {{
-        background-color: #FF6B00;
-        color: white;
-        width: 100%;
-        border-radius: 10px;
-        font-weight: bold;
-        padding: 18px;
-        border: none;
+    /* BOTÃO GERAR PROTOCOLO - ESTILO PERSONALIZADO */
+    div.stButton > button {{
+        background-color: #FF6B00 !important;
+        color: white !important;
+        width: 100% !important;
+        border-radius: 10px !important;
+        font-weight: bold !important;
+        font-size: 20px !important;
+        padding: 20px !important;
+        border: none !important;
+        box-shadow: 0px 4px 15px rgba(255, 107, 0, 0.3) !important;
+        text-transform: uppercase;
     }}
     
     div.stButton > button:hover {{
-        background-color: #E65A00;
-        color: white;
+        background-color: #E65A00 !important;
+        box-shadow: 0px 6px 20px rgba(255, 107, 0, 0.5) !important;
     }}
 
-    .header-container {{
-        text-align: center;
-        padding: 40px 0;
-    }}
+    .header-container {{ text-align: center; padding: 20px 0; }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- NAVEGAÇÃO ---
+# --- NAVEGAÇÃO LATERAL (ADM) ---
 with st.sidebar:
-    st.title("🛡️ Admin")
-    aba = st.radio("Selecione:", ["Página do Cliente", "Painel Gestor"])
-    st.divider()
-    senha_digitada = ""
-    if aba == "Painel Gestor":
-        senha_digitada = st.text_input("Senha", type="password")
+    aba = st.radio("Navegar:", ["Cliente", "Técnico"])
+    senha_digitada = st.text_input("Senha", type="password") if aba == "Técnico" else ""
 
-# --- CONTEÚDO ---
-if aba == "Página do Cliente":
-    # Cabeçalho com sua Logo
+# --- PÁGINA DO CLIENTE ---
+if aba == "Cliente":
     st.markdown(f"""
         <div class="header-container">
-            <img src="{LOGO_URL}" width="220">
-            <h1 style='color: #FF6B00; margin-top: 15px;'>Portal de Atendimento</h1>
-            <p style='color: #888;'>Suporte Técnico Especializado em Tatuí e Região</p>
+            <img src="{LOGO_URL}" width="200">
+            <h1 style='color: #FF6B00;'>Portal de Atendimento</h1>
         </div>
     """, unsafe_allow_html=True)
 
-    with st.form("form_suporte"):
-        st.subheader("📝 Detalhes do Chamado")
-        c1, c2 = st.columns(2)
-        with c1:
-            nome = st.text_input("Nome Completo")
-            zap_cli = st.text_input("Seu WhatsApp")
-        with c2:
-            aparelho = st.selectbox("Aparelho", ["Notebook", "PC Gamer", "Monitor", "Impressora", "Software/Rede"])
+    with st.form("chamado_suporte"):
+        nome = st.text_input("Nome Completo")
+        zap_cli = st.text_input("WhatsApp (DDD + Número)")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            equip = st.selectbox("Aparelho", ["Notebook", "Desktop", "Monitor", "Outro"])
+        with col2:
             modelo = st.text_input("Marca/Modelo")
-        
-        defeito = st.text_area("O que está acontecendo com o equipamento?")
-        
-        btn = st.form_submit_button("GERAR PROTOCOLO E FINALIZAR")
-
-    if btn:
-        if nome and zap_cli and defeito:
-            protocolo = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
             
-            # Salva na lista
-            st.session_state.db_chamados.append({
-                "ID": protocolo, "Cliente": nome, "Equip": f"{aparelho} {modelo}", 
-                "Problema": defeito, "Data": datetime.datetime.now().strftime("%d/%m %H:%M")
-            })
+        defeito = st.text_area("O que está acontecendo?")
+        
+        # O botão agora está configurado pelo CSS acima para ser o destaque
+        btn_gerar = st.form_submit_button("GERAR PROTOCOLO")
 
-            # Texto do Zap
-            msg = (
-                f"*NOVO CHAMADO - INFOHELP*\n"
-                f"*Protocolo:* {protocolo}\n"
-                f"*Cliente:* {nome}\n"
-                f"*Aparelho:* {aparelho} {modelo}\n"
-                f"*Defeito:* {defeito}"
-            )
+    if btn_gerar:
+        if nome and zap_cli and defeito:
+            prot = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
+            st.session_state.db_chamados.append({
+                "ID": prot, "Cliente": nome, "Aparelho": f"{equip} {modelo}", 
+                "Defeito": defeito, "Data": datetime.datetime.now().strftime("%d/%m %H:%M")
+            })
+            
+            msg = f"*NOVO CHAMADO INFOHELP*\n*Protocolo:* {prot}\n*Cliente:* {nome}\n*Defeito:* {defeito}"
             link = f"https://wa.me/{SEU_WHATSAPP}?text={urllib.parse.quote(msg)}"
             
-            st.success(f"Protocolo #{protocolo} gerado!")
+            st.success(f"Protocolo #{prot} gerado com sucesso!")
             st.markdown(f"""
                 <a href="{link}" target="_blank" style="text-decoration:none;">
-                    <div style="background-color:#25D366; color:white; padding:20px; border-radius:10px; text-align:center; font-weight:bold; font-size:1.2em;">
-                        💬 CLIQUE AQUI PARA ENVIAR NO WHATSAPP
+                    <div style="background-color:#25D366; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold; margin-top:10px;">
+                        💬 ENVIAR PARA O WHATSAPP AGORA
                     </div>
                 </a>
             """, unsafe_allow_html=True)
         else:
-            st.error("Por favor, preencha todos os campos!")
+            st.error("Preencha todos os campos obrigatórios!")
 
-elif aba == "Painel Gestor":
+# --- PAINEL DO TÉCNICO ---
+elif aba == "Técnico":
     if senha_digitada == SENHA_ADMIN:
-        st.header("📊 Chamados do Dia")
+        st.header("📋 Chamados Recebidos")
         if st.session_state.db_chamados:
-            st.table(pd.DataFrame(st.session_state.db_chamados))
-            if st.button("Limpar Banco de Dados"):
+            st.write(pd.DataFrame(st.session_state.db_chamados))
+            if st.button("Limpar Lista"):
                 st.session_state.db_chamados = []
                 st.rerun()
         else:
             st.info("Nenhum chamado pendente.")
-    elif senha_digitada != "":
-        st.error("Senha incorreta.")
