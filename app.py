@@ -106,7 +106,7 @@ if aba == "📋 Área do Cliente":
         <div class="header-box">
             <img src="{LOGO_URL}" width="100">
             <h1 style='color: #FF6B00; margin-bottom: 5px;'>INFOHELP TATUÍ</h1>
-            <p style='color: #bbbbbb; font-size: 1.1em;'>Assistência Técnica Renomada em Hardware e Software</p>
+            <p style='color: #bbbbbb; font-size: 1.1em;'>Assistência Técnica em Hardware</p>
         </div>
     """, unsafe_allow_html=True)
 
