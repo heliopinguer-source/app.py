@@ -13,11 +13,10 @@ st.set_page_config(
 )
 
 # =========================================================
-# 🔐 CONFIGURAÇÕES (MUDE SEU NÚMERO AQUI)
+# 🔐 CONFIGURAÇÕES
 # =========================================================
 SENHA_ADMIN = "infohelp2026"
 NUMERO_WHATSAPP = "5515999999999" 
-LOGO_URL = "https://infohelptatui.com.br/wp-content/uploads/2023/06/cropped-logo-infohelp.png"
 # =========================================================
 
 SEU_WHATSAPP = re.sub(r'\D', '', NUMERO_WHATSAPP)
@@ -28,7 +27,7 @@ if "db_chamados" not in st.session_state:
 # --- ESTILO CSS PERSONALIZADO ---
 st.markdown(f"""
     <style>
-    /* Fundo Principal */
+    /* Fundo Principal Escuro */
     .stApp {{ background-color: #0E1117; }}
     
     /* Estilo do Card do Formulário */
@@ -43,7 +42,7 @@ st.markdown(f"""
     .stForm label p {{
         color: #FF6B00 !important;
         font-weight: bold !important;
-        font-size: 18px !important;
+        font-size: 19px !important;
     }}
 
     /* BOTÃO GERAR PROTOCOLO - LARANJA DESTACADO */
@@ -53,18 +52,19 @@ st.markdown(f"""
         width: 100% !important;
         border-radius: 10px !important;
         font-weight: bold !important;
-        font-size: 20px !important;
+        font-size: 22px !important;
         padding: 20px !important;
         border: none !important;
         text-transform: uppercase;
-        margin-top: 10px;
+        margin-top: 15px;
     }}
     
     div.stButton > button:hover {{
         background-color: #E65A00 !important;
+        border: none !important;
     }}
 
-    .header-container {{ text-align: center; padding-bottom: 20px; }}
+    .header-container {{ text-align: center; padding: 30px 0; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -77,14 +77,12 @@ with st.sidebar:
 if aba == "Cliente":
     st.markdown(f"""
         <div class="header-container">
-            <img src="{LOGO_URL}" width="200">
-            <h1 style='color: #FF6B00; margin-bottom: 0;'>Portal de Atendimento</h1>
-            <p style='color: #ffffff;'>Preencha os dados abaixo para iniciar seu suporte</p>
+            <h1 style='color: #FF6B00; font-size: 3em; margin-bottom: 0;'>INFOHELP TATUÍ</h1>
+            <p style='color: #ffffff; font-size: 1.2em;'>Portal de Suporte Técnico</p>
         </div>
     """, unsafe_allow_html=True)
 
     with st.form("form_infohelp"):
-        # Campos com rótulos que o CSS deixará laranja
         nome = st.text_input("Nome Completo")
         zap_cli = st.text_input("WhatsApp (DDD + Número)")
         
@@ -96,7 +94,6 @@ if aba == "Cliente":
             
         defeito = st.text_area("O que está acontecendo?")
         
-        # Botão Laranja
         btn_gerar = st.form_submit_button("GERAR PROTOCOLO")
 
     if btn_gerar:
@@ -113,7 +110,7 @@ if aba == "Cliente":
             st.success(f"Protocolo #{prot} gerado!")
             st.markdown(f"""
                 <a href="{link}" target="_blank" style="text-decoration:none;">
-                    <div style="background-color:#25D366; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold;">
+                    <div style="background-color:#25D366; color:white; padding:18px; border-radius:10px; text-align:center; font-weight:bold; font-size: 1.1em;">
                         💬 ENVIAR PARA O WHATSAPP DA INFOHELP
                     </div>
                 </a>
