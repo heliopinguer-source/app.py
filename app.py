@@ -1,5 +1,5 @@
 import streamlit as st
-import pd
+import pandas as pd
 import datetime
 import urllib.parse
 import re
@@ -16,7 +16,8 @@ st.set_page_config(
 # 🔐 CONFIGURAÇÕES (MUDE AQUI)
 # =========================================================
 SENHA_ADMIN = "infohelp2026"
-NUMERO_WHATSAPP = "5515999999999" # Seu número real aqui
+NUMERO_WHATSAPP = "5515999999999" # Coloque seu número real aqui
+# Link da sua logo (certifique-se de que o link termina em .png ou .jpg)
 LOGO_URL = "https://infohelptatui.com.br/wp-content/uploads/2023/06/cropped-logo-infohelp.png"
 # =========================================================
 
@@ -25,12 +26,11 @@ SEU_WHATSAPP = re.sub(r'\D', '', NUMERO_WHATSAPP)
 if "db_chamados" not in st.session_state:
     st.session_state.db_chamados = []
 
-# --- ESTILO CSS PARA O BOTÃO LARANJA SEMPRE VISÍVEL ---
+# --- ESTILO CSS PARA O BOTÃO LARANJA ---
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #0E1117; }}
     
-    /* Card do Formulário */
     .stForm {{
         background-color: #1c1f26 !important;
         border-radius: 15px !important;
@@ -38,7 +38,7 @@ st.markdown(f"""
         border: 1px solid #3d4450 !important;
     }}
 
-    /* BOTÃO GERAR PROTOCOLO - ESTILO PERSONALIZADO */
+    /* BOTÃO GERAR PROTOCOLO - LARANJA E VISÍVEL */
     div.stButton > button {{
         background-color: #FF6B00 !important;
         color: white !important;
@@ -61,7 +61,7 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# --- NAVEGAÇÃO LATERAL (ADM) ---
+# --- NAVEGAÇÃO LATERAL ---
 with st.sidebar:
     aba = st.radio("Navegar:", ["Cliente", "Técnico"])
     senha_digitada = st.text_input("Senha", type="password") if aba == "Técnico" else ""
@@ -81,13 +81,12 @@ if aba == "Cliente":
         
         col1, col2 = st.columns(2)
         with col1:
-            equip = st.selectbox("Aparelho", ["Notebook", "Desktop", "Monitor", "Outro"])
+            equip = st.selectbox("Aparelho", ["Notebook", "PC Gamer", "Monitor", "Impressora", "Outro"])
         with col2:
             modelo = st.text_input("Marca/Modelo")
             
         defeito = st.text_area("O que está acontecendo?")
         
-        # O botão agora está configurado pelo CSS acima para ser o destaque
         btn_gerar = st.form_submit_button("GERAR PROTOCOLO")
 
     if btn_gerar:
@@ -105,7 +104,7 @@ if aba == "Cliente":
             st.markdown(f"""
                 <a href="{link}" target="_blank" style="text-decoration:none;">
                     <div style="background-color:#25D366; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold; margin-top:10px;">
-                        💬 ENVIAR PARA O WHATSAPP AGORA
+                        💬 CLIQUE AQUI PARA ENVIAR NO WHATSAPP
                     </div>
                 </a>
             """, unsafe_allow_html=True)
@@ -117,7 +116,7 @@ elif aba == "Técnico":
     if senha_digitada == SENHA_ADMIN:
         st.header("📋 Chamados Recebidos")
         if st.session_state.db_chamados:
-            st.write(pd.DataFrame(st.session_state.db_chamados))
+            st.dataframe(pd.DataFrame(st.session_state.db_chamados), use_container_width=True)
             if st.button("Limpar Lista"):
                 st.session_state.db_chamados = []
                 st.rerun()
