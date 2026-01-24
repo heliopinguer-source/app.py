@@ -9,17 +9,15 @@ st.set_page_config(
     page_title="InfoHelp Tatuí | Suporte",
     page_icon="💻",
     layout="centered",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed" # Ele começa fechado, mas a setinha existe
 )
 
-# --- 2. TRUQUE CSS PARA OCULTAR O MENU LATERAL ---
+# Bloqueio contra erro de tradução
+st.markdown("<script>document.documentElement.lang = 'pt-br';</script>", unsafe_allow_html=True)
+
+# --- 2. ESTILO VISUAL (CSS) ---
 st.markdown("""
     <style>
-    /* Esconde o botão de abrir a barra lateral (setinha) */
-    [data-testid="stSidebarNav"] {display: none;}
-    [data-testid="collapsedControl"] {display: none;}
-    
-    /* Estilos Gerais */
     .stApp { background-color: #0E1117; }
     .stForm { 
         background-color: #1c1f26 !important; 
@@ -53,19 +51,20 @@ API_URL = "https://sheetdb.io/api/v1/1soffxez5h6tb"
 SENHA_ADMIN = "infohelp2026"
 MEU_WHATSAPP = "5515991172115" 
 
-# --- 4. SISTEMA DE LOGIN SIMPLES (SEM MENU LATERAL) ---
-# Como o menu está oculto, criei um seletor discreto no final da página 
-# que só você saberá usar para acessar a Área Técnica.
-
-st.markdown("<h1 class='header-text'>INFOHELP TATUÍ</h1>", unsafe_allow_html=True)
-
-# Criamos abas transparentes ou um seletor no topo
-aba = st.selectbox("Navegação", ["📝 Abrir Chamado", "🔒 Área Técnica"], label_visibility="collapsed")
+# --- 4. MENU LATERAL REATIVADO ---
+with st.sidebar:
+    st.markdown("<h2 style='color:#FF6B00;'>INFOHELP ADMIN</h2>", unsafe_allow_html=True)
+    aba = st.radio("Navegação:", ["📝 Abrir Chamado", "🔒 Área Técnica"])
+    st.divider()
+    if aba == "🔒 Área Técnica":
+        senha_digitada = st.text_input("Senha", type="password")
 
 # =========================================================
-# 🏠 5. PÁGINA: ABRIR CHAMADO (CLIENTE)
+# 🏠 5. PÁGINA: ABRIR CHAMADO
 # =========================================================
 if aba == "📝 Abrir Chamado":
+    st.markdown("<h1 class='header-text'>INFOHELP TATUÍ</h1>", unsafe_allow_html=True)
+
     with st.form("form_cliente", clear_on_submit=True):
         nome = st.text_input("Nome Completo")
         zap_cliente = st.text_input("WhatsApp (com DDD)")
@@ -98,23 +97,23 @@ if aba == "📝 Abrir Chamado":
             except:
                 st.error("Erro ao salvar.")
         else:
-            st.warning("Preencha tudo!")
+            st.warning("Preencha todos os campos!")
 
 # =========================================================
 # 📊 6. PÁGINA: ÁREA TÉCNICA (ADMIN)
 # =========================================================
 elif aba == "🔒 Área Técnica":
-    senha = st.text_input("Senha de Acesso", type="password")
-    if senha == SENHA_ADMIN:
+    if 'senha_digitada' in locals() and senha_digitada == SENHA_ADMIN:
+        st.markdown("<h2 style='color:#FF6B00;'>Lista de Chamados</h2>", unsafe_allow_html=True)
         try:
             resp = requests.get(API_URL)
             if resp.status_code == 200:
                 df = pd.DataFrame(resp.json())
                 st.dataframe(df, use_container_width=True)
                 st.divider()
-                selecao = st.selectbox("Ver defeito do protocolo:", df["Protocolo"].tolist())
-                st.info(f"**Relato:** {df[df['Protocolo'] == selecao]['Defeito'].values[0]}")
+                selecao = st.selectbox("Ver detalhe do protocolo:", df["Protocolo"].tolist())
+                st.info(f"**Defeito:** {df[df['Protocolo'] == selecao]['Defeito'].values[0]}")
         except:
             st.error("Erro ao carregar dados.")
-    elif senha != "":
-        st.error("Senha Incorreta!")
+    else:
+        st.info("Digite a senha no menu lateral.")
