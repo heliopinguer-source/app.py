@@ -3,19 +3,20 @@ import datetime
 import urllib.parse
 import re
 import requests
+import pandas as pd
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="InfoHelp Tatuí | Suporte", page_icon="💻", layout="centered")
 
-# Bloqueio contra erro de tradução do navegador (removeChild error)
+# Bloqueio contra erro de tradução do navegador
 st.markdown("<script>document.documentElement.lang = 'pt-br';</script>", unsafe_allow_html=True)
 
 # =========================================================
-# ⚙️ CONFIGURAÇÕES PRINCIPAIS
+# ⚙️ CONFIGURAÇÕES
 # =========================================================
 API_URL = "https://sheetdb.io/api/v1/1soffxez5h6tb"
 SENHA_ADMIN = "infohelp2026"
-MEU_WHATSAPP = "5515991172115" # <-- Coloque seu número real aqui
+MEU_WHATSAPP = "5515996444208" # Ajustado conforme sua imagem
 
 # --- ESTILO CSS ---
 st.markdown("""
@@ -27,16 +28,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- MENU LATERAL (ADMIN) ---
+# --- MENU LATERAL ---
 with st.sidebar:
-    st.title("⚙️ Gestão")
-    aba = st.radio("Navegação:", ["Cliente", "Área Técnica"])
-    senha_digitada = st.text_input("Senha Admin", type="password") if aba == "Área Técnica" else ""
+    st.markdown("<h2 style='color:#FF6B00;'>MENU INFOHELP</h2>", unsafe_allow_html=True)
+    aba = st.radio("Selecione:", ["📝 Abrir Chamado", "🔒 Área Técnica"])
+    st.divider()
+    senha_digitada = st.text_input("Senha de Acesso", type="password") if aba == "🔒 Área Técnica" else ""
 
 # =========================================================
 # 🏠 ÁREA DO CLIENTE
 # =========================================================
-if aba == "Cliente":
+if aba == "📝 Abrir Chamado":
     st.markdown("<h1 style='text-align:center; color:#FF6B00;'>INFOHELP TATUÍ</h1>", unsafe_allow_html=True)
 
     with st.form("chamado_form", clear_on_submit=True):
@@ -74,32 +76,44 @@ if aba == "Cliente":
                 if response.status_code in [200, 201]:
                     st.success(f"Protocolo #{protocolo} gerado com sucesso!")
                     
-                    msg = f"*NOVO CHAMADO*\n*Protocolo:* {protocolo}\n*Cliente:* {nome}\n*Equipamento:* {equip_completo}"
+                    msg = f"*NOVO CHAMADO INFOHELP*\n*Protocolo:* {protocolo}\n*Cliente:* {nome}\n*Defeito:* {defeito}"
                     link_zap = f"https://wa.me/{MEU_WHATSAPP}?text={urllib.parse.quote(msg)}"
                     st.markdown(f'<a href="{link_zap}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366; color:white; padding:18px; border-radius:10px; text-align:center; font-weight:bold;">💬 ENVIAR PARA O WHATSAPP</div></a>', unsafe_allow_html=True)
                 else:
-                    st.error("Erro ao salvar. Verifique se os nomes das colunas na planilha estão corretos.")
+                    st.error("Erro ao salvar. Verifique o SheetDB.")
             except:
-                st.error("Falha de conexão com a planilha.")
+                st.error("Falha de conexão.")
         else:
-            st.warning("Preencha todos os campos!")
+            st.warning("⚠️ Preencha todos os campos.")
 
 # =========================================================
 # 📊 ÁREA TÉCNICA (ADMIN)
 # =========================================================
-elif aba == "Área Técnica":
+elif aba == "🔒 Área Técnica":
     if senha_digitada == SENHA_ADMIN:
-        st.header("📋 Chamados Registrados")
+        st.markdown("<h2 style='color:#FF6B00;'>Painel de Chamados</h2>", unsafe_allow_html=True)
+        
         try:
-            # Busca os dados da planilha via SheetDB
             resp = requests.get(API_URL)
             if resp.status_code == 200:
-                import pandas as pd
-                df = pd.DataFrame(resp.json())
-                st.dataframe(df, use_container_width=True)
+                dados_json = resp.json()
+                if dados_json:
+                    df = pd.DataFrame(dados_json)
+                    # Reorganizar colunas para garantir que o Defeito apareça
+                    st.dataframe(df, use_container_width=True)
+                    
+                    st.divider()
+                    st.subheader("Visualizar Defeito Detalhado")
+                    # Seleção para ver o texto completo do defeito
+                    prot_select = st.selectbox("Selecione o Protocolo para ler o defeito:", df["Protocolo"].tolist())
+                    detalhe = df[df["Protocolo"] == prot_select]["Defeito"].values[0]
+                    st.info(f"**Descrição:** {detalhe}")
+                else:
+                    st.info("Nenhum chamado na planilha.")
             else:
-                st.error("Erro ao carregar dados.")
-        except:
-            st.error("Erro de conexão.")
+                st.error("Erro ao buscar dados.")
+        except Exception as e:
+            st.error(f"Erro de carregamento: {e}")
+            
     elif senha_digitada != "":
-        st.error("Senha incorreta!")
+        st.error("Senha Administrativa Incorreta.")
