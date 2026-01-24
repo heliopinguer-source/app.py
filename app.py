@@ -4,18 +4,19 @@ import urllib.parse
 import requests
 import pandas as pd
 
-# --- 1. CONFIGURAÇÃO DA PÁGINA ---
+# --- 1. CONFIGURAÇÃO DA PÁGINA (MENU INICIA RECOLHIDO) ---
 st.set_page_config(
     page_title="InfoHelp Tatuí | Suporte",
     page_icon="💻",
-    layout="centered"
+    layout="centered",
+    initial_sidebar_state="collapsed" # Faz o menu lateral começar escondido
 )
 
-# Bloqueio contra erro de tradução do Google (evita o erro 'removeChild')
+# Bloqueio contra erro de tradução do Google
 st.markdown("<script>document.documentElement.lang = 'pt-br';</script>", unsafe_allow_html=True)
 
 # =========================================================
-# ⚙️ 2. CONFIGURAÇÕES (JÁ COM SEUS DADOS)
+# ⚙️ 2. CONFIGURAÇÕES
 # =========================================================
 API_URL = "https://sheetdb.io/api/v1/1soffxez5h6tb"
 SENHA_ADMIN = "infohelp2026"
@@ -47,24 +48,27 @@ st.markdown("""
         border: none !important; 
     }
     .header-text { text-align: center; color: #FF6B00; margin-bottom: 20px; }
+    /* Esconde o botão de abrir o menu lateral para clientes (opcional) */
+    /* Se quiser esconder totalmente o botão '>', descomente a linha abaixo: */
+    /* #MainMenu {visibility: hidden;} */
     </style>
 """, unsafe_allow_html=True)
 
 # --- 4. MENU LATERAL (NAVEGAÇÃO) ---
 with st.sidebar:
-    st.markdown("<h2 style='color:#FF6B00;'>INFOHELP TATUÍ</h2>", unsafe_allow_html=True)
-    st.write("Sistema de Gerenciamento")
-    aba = st.radio("Selecione a página:", ["📝 Abrir Chamado", "🔒 Área Técnica"])
+    st.markdown("<h2 style='color:#FF6B00;'>PAINEL DE CONTROLO</h2>", unsafe_allow_html=True)
+    aba = st.radio("Navegar para:", ["📝 Abrir Chamado", "🔒 Área Técnica"])
     st.divider()
     
     if aba == "🔒 Área Técnica":
-        senha_digitada = st.text_input("Senha Administrativa", type="password")
+        senha_digitada = st.text_input("Senha Admin", type="password")
 
 # =========================================================
 # 🏠 5. PÁGINA: ABRIR CHAMADO (CLIENTE)
 # =========================================================
 if aba == "📝 Abrir Chamado":
-    st.markdown("<h1 class='header-text'>SOLICITAR SUPORTE</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 class='header-text'>INFOHELP TATUÍ</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; color:white;'>Preencha os dados abaixo para iniciar o seu atendimento</p>", unsafe_allow_html=True)
 
     with st.form("form_cliente", clear_on_submit=True):
         nome = st.text_input("Nome Completo")
@@ -76,18 +80,16 @@ if aba == "📝 Abrir Chamado":
         with col2:
             modelo = st.text_input("Marca / Modelo")
             
-        defeito = st.text_area("O que está acontecendo? (Descrição do Defeito)")
+        defeito = st.text_area("O que está a acontecer? (Descrição do Defeito)")
         
-        submit = st.form_submit_button("GERAR MEU PROTOCOLO")
+        submit = st.form_submit_button("GERAR PROTOCOLO")
 
     if submit:
         if nome and zap_cliente and defeito:
-            # Gerar dados do chamado
             protocolo = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
             data_atual = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
             equip_completo = f"{tipo_equip} - {modelo}"
             
-            # Enviar para a Planilha via SheetDB
             payload = {
                 "data": [{
                     "Protocolo": protocolo,
@@ -104,7 +106,6 @@ if aba == "📝 Abrir Chamado":
                 if response.status_code in [200, 201]:
                     st.success(f"Protocolo #{protocolo} gerado com sucesso!")
                     
-                    # Montar Mensagem do WhatsApp Completa
                     texto_zap = (
                         f"*💻 NOVO CHAMADO - INFOHELP*\n\n"
                         f"*🎫 Protocolo:* {protocolo}\n"
@@ -115,7 +116,6 @@ if aba == "📝 Abrir Chamado":
                     
                     link_zap = f"https://wa.me/{MEU_WHATSAPP}?text={urllib.parse.quote(texto_zap)}"
                     
-                    # Botão Grande para WhatsApp
                     st.markdown(f"""
                         <a href="{link_zap}" target="_blank" style="text-decoration:none;">
                             <div style="background-color:#25D366; color:white; padding:18px; border-radius:10px; text-align:center; font-weight:bold; font-size:1.1em; margin-top:10px;">
@@ -123,13 +123,13 @@ if aba == "📝 Abrir Chamado":
                             </div>
                         </a>
                     """, unsafe_allow_html=True)
-                    st.balloons()
+                    # Balões removidos como solicitado
                 else:
-                    st.error("Erro ao salvar na planilha. Verifique a API.")
+                    st.error("Erro ao salvar dados. Tente novamente.")
             except:
-                st.error("Erro de conexão. Tente novamente.")
+                st.error("Falha de ligação ao servidor.")
         else:
-            st.warning("⚠️ Por favor, preencha todos os campos para continuar.")
+            st.warning("⚠️ Por favor, preencha todos os campos.")
 
 # =========================================================
 # 📊 6. PÁGINA: ÁREA TÉCNICA (ADMIN)
@@ -139,29 +139,24 @@ elif aba == "🔒 Área Técnica":
         st.markdown("<h2 style='color:#FF6B00;'>📋 Chamados Recebidos</h2>", unsafe_allow_html=True)
         
         try:
-            # Puxar dados da planilha
             resp = requests.get(API_URL)
             if resp.status_code == 200:
                 dados = resp.json()
                 if dados:
                     df = pd.DataFrame(dados)
-                    # Mostrar Tabela
                     st.dataframe(df, use_container_width=True)
                     
-                    # Visualizador de Detalhes
                     st.divider()
-                    st.subheader("🔍 Detalhes do Problema")
-                    selecao = st.selectbox("Selecione um Protocolo para ler:", df["Protocolo"].tolist())
+                    st.subheader("🔍 Detalhes do Chamado")
+                    selecao = st.selectbox("Escolha um Protocolo:", df["Protocolo"].tolist())
                     texto_defeito = df[df["Protocolo"] == selecao]["Defeito"].values[0]
                     st.warning(f"**Relato do Cliente:** {texto_defeito}")
                 else:
-                    st.info("Ainda não há chamados registrados na planilha.")
-            else:
-                st.error("Não foi possível acessar os dados da planilha.")
+                    st.info("Nenhum chamado encontrado.")
         except Exception as e:
-            st.error(f"Erro ao carregar dados: {e}")
+            st.error(f"Erro ao carregar: {e}")
             
     elif 'senha_digitada' in locals() and senha_digitada != "":
-        st.error("Senha Administrativa Incorreta!")
+        st.error("Senha Incorreta!")
     else:
-        st.info("Digite a senha no menu lateral para acessar os dados.")
+        st.info("Utilize o menu lateral para fazer login.")
