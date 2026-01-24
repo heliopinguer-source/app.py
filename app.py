@@ -9,10 +9,10 @@ st.set_page_config(
     page_title="InfoHelp Tatuí | Suporte",
     page_icon="💻",
     layout="centered",
-    initial_sidebar_state="collapsed" # Menu começa recolhido para não atrapalhar
+    initial_sidebar_state="collapsed"
 )
 
-# Bloqueio contra erro de tradução (NotFoundError)
+# Bloqueio contra erro de tradução do navegador
 st.markdown("<script>document.documentElement.lang = 'pt-br';</script>", unsafe_allow_html=True)
 
 # =========================================================
@@ -22,7 +22,7 @@ API_URL = "https://sheetdb.io/api/v1/1soffxez5h6tb"
 SENHA_ADMIN = "infohelp2026"
 MEU_WHATSAPP = "5515991172115" 
 
-# --- 3. ESTILO CSS (Fixando o visual) ---
+# --- 3. ESTILO CSS ---
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
@@ -65,7 +65,7 @@ if aba == "📝 Abrir Chamado":
             tipo_equip = st.selectbox("Aparelho", ["Notebook", "Desktop", "Monitor", "Impressora", "Outro"])
         with col2:
             modelo = st.text_input("Marca / Modelo")
-        defeito = st.text_area("Descrição do Defeito")
+        defeito = st.text_area("O que está acontecendo?")
         submit = st.form_submit_button("GERAR PROTOCOLO")
 
     if submit:
@@ -77,68 +77,75 @@ if aba == "📝 Abrir Chamado":
             payload = {"data": [{"Protocolo": protocolo, "Data": data_atual, "Cliente": nome, "WhatsApp": zap_cliente, "Equipamento": equip_completo, "Defeito": defeito}]}
             
             try:
-                # Envia para SheetDB
                 requests.post(API_URL, json=payload)
-                st.success(f"Protocolo #{protocolo} gerado com sucesso!")
+                st.success(f"Protocolo #{protocolo} gerado!")
                 
-                # Mensagem completa para o WhatsApp
-                texto_zap = f"*💻 NOVO CHAMADO*\n*🎫 Protocolo:* {protocolo}\n*👤 Cliente:* {nome}\n*⚙️ Equip:* {equip_completo}\n*🛠️ Defeito:* {defeito}"
+                texto_zap = (
+                    f"*💻 NOVO CHAMADO*\n\n"
+                    f"*🎫 Protocolo:* {protocolo}\n"
+                    f"*👤 Cliente:* {nome}\n"
+                    f"*⚙️ Equipamento:* {equip_completo}\n"
+                    f"*🛠️ Defeito:* {defeito}"
+                )
                 link_zap = f"https://wa.me/{MEU_WHATSAPP}?text={urllib.parse.quote(texto_zap)}"
-                
                 st.markdown(f'<a href="{link_zap}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366; color:white; padding:18px; border-radius:10px; text-align:center; font-weight:bold;">💬 ENVIAR PARA WHATSAPP</div></a>', unsafe_allow_html=True)
             except:
-                st.error("Erro ao salvar os dados na planilha.")
+                st.error("Erro ao salvar dados.")
         else:
-            st.warning("⚠️ Por favor, preencha todos os campos!")
+            st.warning("Preencha todos os campos!")
 
 # =========================================================
-# 📊 6. PÁGINA: ÁREA TÉCNICA (ADMIN + EXCLUSÃO)
+# 📊 6. PÁGINA: ÁREA TÉCNICA (ADMIN + EXCLUSÃO + FIX DE DADOS)
 # =========================================================
 elif aba == "🔒 Área Técnica":
     if senha_digitada == SENHA_ADMIN:
         st.markdown("<h2 style='color:#FF6B00;'>Gerenciar Chamados</h2>", unsafe_allow_html=True)
         
-        # Função para carregar dados
-        def carregar_dados():
-            try:
-                resp = requests.get(API_URL)
-                if resp.status_code == 200:
-                    return resp.json()
-                return []
-            except:
-                return []
+        # Botão para atualizar (limpa cache)
+        if st.button("🔄 ATUALIZAR LISTA"):
+            st.rerun()
 
-        dados = carregar_dados()
-        
-        if dados:
-            df = pd.DataFrame(dados)
-            # Mostra a tabela de chamados
-            st.dataframe(df, use_container_width=True)
+        try:
+            # Puxa os dados com um parâmetro aleatório para evitar cache do SheetDB
+            resp = requests.get(f"{API_URL}?_={datetime.datetime.now().timestamp()}")
             
-            st.divider()
-            st.subheader("🗑️ Finalizar Chamado")
-            
-            col_sel, col_btn = st.columns([2, 1])
-            with col_sel:
-                lista_protocolos = df["Protocolo"].tolist()
-                prot_excluir = st.selectbox("Escolha o chamado concluído:", lista_protocolos)
-            
-            with col_btn:
-                st.write(" ") # Ajuste de altura
-                if st.button("EXCLUIR REGISTRO"):
-                    # Deletar no SheetDB
-                    url_delete = f"{API_URL}/Protocolo/{prot_excluir}"
-                    try:
-                        res = requests.delete(url_delete)
-                        if res.status_code in [200, 204]:
-                            st.success(f"Chamado {prot_excluir} removido!")
-                            st.rerun() # Força a atualização da lista
+            if resp.status_code == 200:
+                dados = resp.json()
+                
+                if isinstance(dados, list) and len(dados) > 0:
+                    df = pd.DataFrame(dados)
+                    st.dataframe(df, use_container_width=True)
+                    
+                    st.divider()
+                    st.subheader("🗑️ Finalizar e Excluir Chamado")
+                    
+                    col_sel, col_btn = st.columns([2, 1])
+                    with col_sel:
+                        if "Protocolo" in df.columns:
+                            lista_prot = df["Protocolo"].tolist()
+                            prot_excluir = st.selectbox("Escolha o protocolo para APAGAR:", lista_prot)
                         else:
-                            st.error("Erro ao apagar na planilha.")
-                    except:
-                        st.error("Erro de conexão ao excluir.")
-        else:
-            st.info("Não há chamados registrados no momento.")
+                            st.error("Coluna 'Protocolo' não encontrada na planilha!")
+                            prot_excluir = None
+                    
+                    with col_btn:
+                        st.write(" ") 
+                        if prot_excluir and st.button("❌ APAGAR AGORA"):
+                            # URL de exclusão específica do SheetDB
+                            url_delete = f"{API_URL}/Protocolo/{prot_excluir}"
+                            res_del = requests.delete(url_delete)
+                            
+                            if res_del.status_code in [200, 201, 204]:
+                                st.success(f"Chamado {prot_excluir} removido!")
+                                st.rerun()
+                            else:
+                                st.error("Erro ao apagar. Verifique se o DELETE está ativo no site SheetDB.")
+                else:
+                    st.info("A planilha parece estar vazia ou os dados ainda não carregaram.")
+            else:
+                st.error("Falha na conexão com a planilha.")
+        except Exception as e:
+            st.error(f"Erro de carregamento: {e}")
             
     elif senha_digitada != "":
         st.error("Senha Administrativa Incorreta!")
