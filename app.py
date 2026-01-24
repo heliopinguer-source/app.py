@@ -16,7 +16,7 @@ st.markdown("<script>document.documentElement.lang = 'pt-br';</script>", unsafe_
 # =========================================================
 API_URL = "https://sheetdb.io/api/v1/1soffxez5h6tb"
 SENHA_ADMIN = "infohelp2026"
-MEU_WHATSAPP = "5515996444208" # Ajustado conforme sua imagem
+MEU_WHATSAPP = "5515991172115" # Ajustado conforme sua imagem
 
 # --- ESTILO CSS ---
 st.markdown("""
