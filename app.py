@@ -9,13 +9,12 @@ import time
 st.set_page_config(
     page_title="InfoHelp Tatuí", 
     layout="wide", 
-    initial_sidebar_state="collapsed" # Comando oficial para iniciar fechado
+    initial_sidebar_state="collapsed" 
 )
 
-# --- 2. TRUQUE CSS PARA TIRAR O MENU DA FRENTE ---
+# --- 2. ESTILO CSS (Ocultando elementos nativos do Streamlit) ---
 st.markdown("""
     <style>
-    /* Estilo do Fundo e Form */
     .stApp { background-color: #0E1117; }
     [data-testid="stSidebar"] { background-color: #f0f2f6; }
     .stForm { background-color: #1c1f26 !important; border-radius: 10px !important; border: 1px solid #3d4450 !important; padding: 20px; }
@@ -23,36 +22,33 @@ st.markdown("""
     h1, h2 { color: #FF6B00 !important; text-align: center; }
     div.stButton > button { background-color: #ffffff !important; color: #000000 !important; font-weight: bold; width: 100%; height: 50px; }
     
-    /* Garante que o conteúdo principal use todo o espaço quando o menu sumir */
-    [data-testid="stSidebar"][aria-expanded="false"] {
-        margin-left: -300px;
-    }
+    #MainMenu {visibility: hidden;} /* Esconde o menu de 3 risquinhos do Streamlit */
+    footer {visibility: hidden;}    /* Esconde o rodapé */
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. CONFIGURAÇÕES E PING ---
+# --- 3. CONFIGURAÇÕES ---
 API_URL = "https://sheetdb.io/api/v1/1soffxez5h6tb"
 SENHA_ADMIN = "infohelp2026"
+CHAVE_MESTRE = "admhelp" # Digite isso no campo secreto para ver o menu técnico
 MEU_WHATSAPP = "5515991172115"
 
-def keep_alive():
-    if 'last_ping' not in st.session_state:
-        st.session_state.last_ping = time.time()
-    if time.time() - st.session_state.last_ping > 600:
-        try: requests.get(API_URL, timeout=5)
-        except: pass
-        st.session_state.last_ping = time.time()
-
-keep_alive()
-
-# --- 4. MENU LATERAL ---
+# --- 4. MENU LATERAL INTELIGENTE ---
 with st.sidebar:
-    st.markdown("<h1>MENU</h1>", unsafe_allow_html=True)
-    aba = st.radio("Selecione:", ["📝 Abrir Chamado", "🔒 Área Técnica"])
-    st.divider()
-    senha = st.text_input("Senha Admin", type="password") if aba == "🔒 Área Técnica" else ""
+    st.markdown("<h1 style='font-size: 20px;'>INFOHELP</h1>", unsafe_allow_html=True)
+    
+    # Campo "invisível" para o técnico liberar o menu
+    acesso = st.text_input("Acesso Interno", type="password", help="Apenas para funcionários")
+    
+    if acesso == CHAVE_MESTRE:
+        st.success("Modo Técnico Ativo")
+        aba = st.radio("Navegação:", ["📝 Abrir Chamado", "🔒 Área Técnica"])
+    else:
+        aba = "📝 Abrir Chamado" # Força o cliente a ficar aqui
+        if acesso != "":
+            st.error("Chave incorreta")
 
-# --- 5. PÁGINA: ABRIR CHAMADO ---
+# --- 5. PÁGINA: ABRIR CHAMADO (O QUE O CLIENTE VÊ) ---
 if aba == "📝 Abrir Chamado":
     st.markdown("<h1>INFOHELP TATUÍ</h1>", unsafe_allow_html=True)
     with st.form("novo_chamado", clear_on_submit=True):
@@ -80,20 +76,20 @@ if aba == "📝 Abrir Chamado":
                         st.markdown(f'<a href="https://wa.me/{MEU_WHATSAPP}?text={urllib.parse.quote(texto)}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold;">💬 ENVIAR PARA WHATSAPP</div></a>', unsafe_allow_html=True)
                 except: st.error("Erro de conexão.")
 
-# --- 6. PÁGINA: ÁREA TÉCNICA ---
-elif aba == "🔒 Área Técnica":
-    if senha == SENHA_ADMIN:
-        st.markdown("<h1>Gerenciar Chamados</h1>", unsafe_allow_html=True)
+# --- 6. PÁGINA: ÁREA TÉCNICA (SÓ APARECE COM A CHAVE MESTRE) ---
+elif aba == "🔒 Área Técnica" and acesso == CHAVE_MESTRE:
+    # Segunda camada de segurança: a senha que você já usava
+    senha_final = st.text_input("Senha de Gerência", type="password")
+    if senha_final == SENHA_ADMIN:
+        st.markdown("<h1>Painel de Controle</h1>", unsafe_allow_html=True)
         try:
-            r = requests.get(f"{API_URL}?_={datetime.datetime.now().timestamp()}")
+            r = requests.get(f"{API_URL}?_={time.time()}")
             if r.status_code == 200:
                 df = pd.DataFrame(r.json())
-                if not df.empty:
-                    st.dataframe(df, use_container_width=True)
-                    st.divider()
-                    excluir = st.selectbox("Protocolo para Excluir:", df["Protocolo"].tolist())
-                    if st.button("EXCLUIR REGISTRO"):
-                        requests.delete(f"{API_URL}/Protocolo/{excluir}")
-                        st.rerun()
-                else: st.info("Sem chamados.")
+                st.dataframe(df, use_container_width=True)
+                st.divider()
+                excluir = st.selectbox("Protocolo para remover:", df["Protocolo"].tolist())
+                if st.button("EXCLUIR REGISTRO"):
+                    requests.delete(f"{API_URL}/Protocolo/{excluir}")
+                    st.rerun()
         except: st.error("Erro ao carregar dados.")
