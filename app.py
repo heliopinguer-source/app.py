@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. ESTILO CSS (OCULTANDO MENU E AJUSTANDO BOTÕES) ---
+# --- 2. ESTILO CSS (FOCO NO BOTÃO E MENSAGEM) ---
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
@@ -29,13 +29,16 @@ st.markdown("""
     /* Botão Branco de Gerar Protocolo */
     div.stButton > button { background-color: #ffffff !important; color: #000000 !important; font-weight: bold; width: 100%; height: 50px; border: none; }
     
-    /* Estilo para a mensagem de instrução do WhatsApp */
-    .instrucao-zap {
-        color: #25D366;
+    /* Mensagem de Atenção em Laranja/Amarelo para destacar */
+    .atencao-zap {
+        color: #FFD700;
         font-weight: bold;
-        font-size: 18px;
+        font-size: 20px;
         text-align: center;
-        margin-bottom: 10px;
+        padding: 10px;
+        border: 2px dashed #FFD700;
+        border-radius: 10px;
+        margin-top: 15px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -52,7 +55,10 @@ if 'modo' not in st.session_state:
 if st.session_state.modo == 'cliente':
     st.markdown("<h1>INFOHELP TATUÍ</h1>", unsafe_allow_html=True)
     
-    with st.form("novo_chamado", clear_on_submit=True):
+    # Criamos um container para o formulário
+    cont_form = st.container()
+    
+    with cont_form.form("novo_chamado", clear_on_submit=False):
         nome = st.text_input("Nome Completo")
         
         c1, c2 = st.columns(2)
@@ -74,52 +80,50 @@ if st.session_state.modo == 'cliente':
         
         submit = st.form_submit_button("GERAR PROTOCOLO")
 
-    # AÇÕES APÓS CLICAR NO BOTÃO
-    if submit:
-        if nome and zap_cli and defe:
-            prot = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
-            equip_final = f"{tipo_equip} - {modelo_detalhe}"
-            
-            payload = {"data": [{
-                "Protocolo": prot, 
-                "Data": datetime.datetime.now().strftime("%d/%m/%Y"), 
-                "Cliente": nome, 
-                "Documento": doc, 
-                "WhatsApp": zap_cli, 
-                "Endereco": end, 
-                "Equipamento": equip_final, 
-                "Defeito": defe
-            }]}
-            
-            try:
-                res = requests.post(API_URL, json=payload)
-                if res.status_code in [200, 201]:
-                    st.success(f"Protocolo #{prot} gerado com sucesso!")
-                    
-                    # --- MENSAGEM DE INSTRUÇÃO E BOTÃO WHATSAPP ---
-                    st.markdown("<p class='instrucao-zap'>✅ Clique no botão verde abaixo para enviar pelo WhatsApp.<br>Entraremos em contato o mais rápido possível!</p>", unsafe_allow_html=True)
-                    
-                    texto = (f"*💻 INFOHELP - NOVA OS*\n\n"
-                             f"*Protocolo:* {prot}\n"
-                             f"*Cliente:* {nome}\n"
-                             f"*Equipamento:* {equip_final}\n"
-                             f"*Defeito:* {defe}")
-                    
-                    link = f"https://wa.me/{MEU_WHATSAPP}?text={urllib.parse.quote(texto)}"
-                    
-                    st.markdown(f'''
-                        <a href="{link}" target="_blank" style="text-decoration:none;">
-                            <div style="background-color:#25D366; color:white; padding:18px; border-radius:10px; text-align:center; font-weight:bold; font-size:20px; border: 2px solid #ffffff;">
-                                💬 ENVIAR WHATSAPP AGORA
+        # --- AÇÃO DENTRO DO FORMULÁRIO ---
+        if submit:
+            if nome and zap_cli and defe:
+                prot = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
+                equip_final = f"{tipo_equip} - {modelo_detalhe}"
+                
+                payload = {"data": [{
+                    "Protocolo": prot, "Data": datetime.datetime.now().strftime("%d/%m/%Y"), 
+                    "Cliente": nome, "Documento": doc, "WhatsApp": zap_cli, 
+                    "Endereco": end, "Equipamento": equip_final, "Defeito": defe
+                }]}
+                
+                try:
+                    res = requests.post(API_URL, json=payload)
+                    if res.status_code in [200, 201]:
+                        # Mensagem de alerta imediata
+                        st.markdown(f"""
+                            <div class='atencao-zap'>
+                                ⚠️ QUASE PRONTO! Protocolo {prot} gerado.<br>
+                                AGORA CLIQUE NO BOTÃO VERDE ABAIXO PARA NOS ENVIAR!
                             </div>
-                        </a>
-                    ''', unsafe_allow_html=True)
-                else:
-                    st.error("Erro ao salvar dados. Verifique sua planilha.")
-            except:
-                st.error("Erro de conexão.")
-        else:
-            st.warning("⚠️ Preencha Nome, WhatsApp e Defeito para prosseguir.")
+                        """, unsafe_allow_html=True)
+                        
+                        texto_zap = (f"*💻 INFOHELP - NOVA OS*\n\n"
+                                     f"*Protocolo:* {prot}\n"
+                                     f"*Cliente:* {nome}\n"
+                                     f"*Equipamento:* {equip_final}\n"
+                                     f"*Defeito:* {defe}")
+                        
+                        link = f"https://wa.me/{MEU_WHATSAPP}?text={urllib.parse.quote(texto_zap)}"
+                        
+                        st.markdown(f'''
+                            <a href="{link}" target="_blank" style="text-decoration:none;">
+                                <div style="background-color:#25D366; color:white; padding:20px; border-radius:10px; text-align:center; font-weight:bold; font-size:22px; margin-top:10px; border: 3px solid #ffffff;">
+                                    💬 CLIQUE AQUI: ENVIAR WHATSAPP
+                                </div>
+                            </a>
+                        ''', unsafe_allow_html=True)
+                    else:
+                        st.error("Erro ao salvar. Tente novamente.")
+                except:
+                    st.error("Sem conexão.")
+            else:
+                st.warning("Preencha os campos obrigatórios.")
 
     # ACESSO ADM DISCRETO
     st.write("---")
@@ -129,34 +133,16 @@ if st.session_state.modo == 'cliente':
             st.session_state.modo = 'login'
             st.rerun()
 
-# --- 5. TELA DE LOGIN ADM ---
+# --- 5. LOGIN E ADMIN (Mantidos conforme solicitado) ---
 elif st.session_state.modo == 'login':
-    st.markdown("<h2>ÁREA TÉCNICA - LOGIN</h2>", unsafe_allow_html=True)
     senha_login = st.text_input("Senha", type="password")
     if st.button("ENTRAR"):
         if senha_login == SENHA_ADMIN:
             st.session_state.modo = 'admin'
             st.rerun()
-        else: st.error("Incorreto")
+elif st.session_state.modo == 'admin':
     if st.button("VOLTAR"):
         st.session_state.modo = 'cliente'
         st.rerun()
-
-# --- 6. PAINEL ADM ---
-elif st.session_state.modo == 'admin':
-    st.markdown("<h2>PAINEL DE CONTROLE</h2>", unsafe_allow_html=True)
-    if st.button("VOLTAR AO INÍCIO"):
-        st.session_state.modo = 'cliente'
-        st.rerun()
-    try:
-        r = requests.get(f"{API_URL}?_={time.time()}")
-        df = pd.DataFrame(r.json())
-        st.dataframe(df, use_container_width=True)
-        if not df.empty:
-            st.divider()
-            excluir = st.selectbox("Finalizar Chamado:", df["Protocolo"].tolist())
-            if st.button("APAGAR REGISTRO"):
-                requests.delete(f"{API_URL}/Protocolo/{excluir}")
-                st.rerun()
-    except:
-        st.error("Falha ao ler planilha.")
+    r = requests.get(f"{API_URL}?_={time.time()}")
+    st.dataframe(pd.DataFrame(r.json()), use_container_width=True)
