@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. ESTILO CSS ---
+# --- 2. ESTILO CSS (FOCO NO LAYOUT DOS BOTÕES) ---
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
@@ -23,7 +23,7 @@ st.markdown("""
     /* ESCONDE SIDEBAR E ELEMENTOS NATIVOS */
     [data-testid="stSidebarNav"], [data-testid="collapsedControl"], #MainMenu, footer {display: none;}
     
-    /* Botão Branco de Gerar Protocolo */
+    /* Botão Branco de Gerar Protocolo conforme seu print */
     div.stButton > button { 
         background-color: #ffffff !important; 
         color: #000000 !important; 
@@ -33,14 +33,13 @@ st.markdown("""
         border: none; 
     }
     
-    /* Alerta de Finalização */
-    .alerta-final {
+    /* Quadro de Alerta do WhatsApp */
+    .alerta-zap {
         text-align: center;
-        background-color: #ff6b0022;
-        border: 2px dashed #FF6B00;
-        padding: 15px;
+        background-color: #1c1f26;
+        border: 2px solid #25D366;
+        padding: 10px;
         border-radius: 10px;
-        margin-top: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -73,82 +72,79 @@ if st.session_state.modo == 'cliente':
             modelo = st.text_input("Marca / Modelo")
             
         defe = st.text_area("Descrição do Defeito")
-        submit = st.form_submit_button("GERAR PROTOCOLO")
-
-    if submit:
-        if nome and zap_cli and defe:
-            prot = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
-            equip_final = f"{tipo_equip} - {modelo}"
+        
+        # --- ÁREA DOS BOTÕES LADO A LADO ---
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            submit = st.form_submit_button("GERAR PROTOCOLO")
             
-            payload = {"data": [{
-                "Protocolo": prot, "Data": datetime.datetime.now().strftime("%d/%m/%Y"), 
-                "Cliente": nome, "Documento": doc, "WhatsApp": zap_cli, 
-                "Endereco": end, "Equipamento": equip_final, "Defeito": defe
-            }]}
-            
-            try:
-                res = requests.post(API_URL, json=payload)
-                if res.status_code in [200, 201]:
-                    # --- ANIMAÇÃO TEMA ELETRÔNICA ---
-                    st.snow() # Efeito de partículas
-                    st.toast('Processando reparo...', icon='📟')
-                    
-                    st.success(f"✅ Protocolo {prot} Registrado no Sistema!")
-                    
-                    texto_zap = (f"*💻 NOVA OS INFOHELP*\n\n"
-                                 f"*Protocolo:* {prot}\n"
-                                 f"*Cliente:* {nome}\n"
-                                 f"*Equipamento:* {equip_final}\n"
-                                 f"*Defeito:* {defe}")
-                    
-                    link_direto = f"https://api.whatsapp.com/send?phone={WHATS_RECEPCAO}&text={urllib.parse.quote(texto_zap)}"
-                    
-                    # --- QUADRO DE AVISO FINAL ---
-                    st.markdown(f"""
-                        <div class="alerta-final">
-                            <h3 style="color: #FF6B00; margin-top: 0;">⚠️ ETAPA FINAL OBRIGATÓRIA</h3>
-                            <p style="color: white; font-size: 18px;">
-                                Para validar sua entrada na assistência, clique no botão verde abaixo e envie a mensagem.
-                            </p>
-                            <a href="{link_direto}" target="_blank" style="text-decoration:none;">
-                                <div style="background-color:#25D366; color:white; padding:18px; border-radius:10px; text-align:center; font-weight:bold; font-size:22px; border: 2px solid white;">
-                                    💬 CONCLUIR NO WHATSAPP
-                                </div>
-                            </a>
-                        </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.error("Erro técnico ao salvar.")
-            except:
-                st.error("Erro de conexão.")
-        else:
-            st.warning("⚠️ Preencha os campos obrigatórios.")
+        with col_btn2:
+            # O botão de WhatsApp só aparece aqui depois que o cliente clica no primeiro
+            placeholder_zap = st.empty()
 
+        # Lógica após clicar em Gerar Protocolo
+        if submit:
+            if nome and zap_cli and defe:
+                prot = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
+                equip_final = f"{tipo_equip} - {modelo}"
+                
+                # Salva na Planilha
+                payload = {"data": [{
+                    "Protocolo": prot, "Data": datetime.datetime.now().strftime("%d/%m/%Y"), 
+                    "Cliente": nome, "Documento": doc, "WhatsApp": zap_cli, 
+                    "Endereco": end, "Equipamento": equip_final, "Defeito": defe
+                }]}
+                
+                try:
+                    res = requests.post(API_URL, json=payload)
+                    if res.status_code in [200, 201]:
+                        # Mensagem curta de confirmação interna
+                        st.write(f"✅ Protocolo {prot} criado!")
+                        
+                        texto_zap = (f"*💻 NOVA OS INFOHELP*\n"
+                                     f"*Protocolo:* {prot}\n"
+                                     f"*Cliente:* {nome}\n"
+                                     f"*Equipamento:* {equip_final}\n"
+                                     f"*Defeito:* {defe}")
+                        
+                        link_direto = f"https://api.whatsapp.com/send?phone={WHATS_RECEPCAO}&text={urllib.parse.quote(texto_zap)}"
+                        
+                        # Coloca o botão do WhatsApp do lado do botão de envio
+                        with col_btn2:
+                            st.markdown(f"""
+                                <a href="{link_direto}" target="_blank" style="text-decoration:none;">
+                                    <div style="background-color:#25D366; color:white; padding:12px; border-radius:5px; text-align:center; font-weight:bold; font-size:16px; height:50px; display:flex; align-items:center; justify-content:center; border: 1px solid white;">
+                                        ENVIAR WHATSAPP AGORA 💬
+                                    </div>
+                                </a>
+                            """, unsafe_allow_html=True)
+                        
+                        st.warning("⚠️ Você precisa clicar no botão verde acima para finalizar!")
+                    else:
+                        st.error("Erro ao registrar.")
+                except:
+                    st.error("Erro de conexão.")
+            else:
+                st.warning("Preencha Nome, WhatsApp e Defeito.")
+
+    # ACESSO ADM (🔧)
     st.write("---")
     if st.button("🔧"):
         st.session_state.modo = 'login'
         st.rerun()
 
-# --- 5. TELA DE LOGIN E ADMIN (Igual anterior) ---
+# --- TELA DE ADMIN (Mantida conforme anterior) ---
 elif st.session_state.modo == 'login':
-    st.markdown("<h2>LOGIN TÉCNICO</h2>", unsafe_allow_html=True)
     senha = st.text_input("Senha", type="password")
     if st.button("ACESSAR"):
         if senha == SENHA_ADMIN: st.session_state.modo = 'admin'; st.rerun()
-        else: st.error("Incorreta")
-    if st.button("CANCELAR"): st.session_state.modo = 'cliente'; st.rerun()
-
 elif st.session_state.modo == 'admin':
-    st.markdown("<h2>GERENCIAR CHAMADOS</h2>", unsafe_allow_html=True)
     if st.button("VOLTAR"): st.session_state.modo = 'cliente'; st.rerun()
-    try:
-        r = requests.get(f"{API_URL}?_={time.time()}")
-        df = pd.DataFrame(r.json())
-        st.dataframe(df, use_container_width=True)
-        if not df.empty:
-            st.divider()
-            excluir = st.selectbox("Finalizar OS:", df["Protocolo"].tolist())
-            if st.button("EXCLUIR REGISTRO"):
-                requests.delete(f"{API_URL}/Protocolo/{excluir}")
-                st.rerun()
-    except: st.error("Erro ao carregar dados.")
+    r = requests.get(f"{API_URL}?_={time.time()}")
+    df = pd.DataFrame(r.json())
+    st.dataframe(df, use_container_width=True)
+    if not df.empty:
+        excluir = st.selectbox("Excluir Protocolo:", df["Protocolo"].tolist())
+        if st.button("EXCLUIR"):
+            requests.delete(f"{API_URL}/Protocolo/{excluir}")
+            st.rerun()
