@@ -5,57 +5,52 @@ import requests
 import pandas as pd
 import time
 
-# --- 1. CONFIGURAÇÃO DA PÁGINA ---
+# --- 1. CONFIGURAÇÃO DA PÁGINA (SEM MENU POR PADRÃO) ---
 st.set_page_config(
     page_title="InfoHelp Tatuí", 
     layout="wide", 
-    initial_sidebar_state="collapsed" 
+    initial_sidebar_state="collapsed"
 )
 
-# --- 2. ESTILO CSS (Ocultando elementos nativos do Streamlit) ---
+# --- 2. ESTILO CSS PARA OCULTAR TUDO DO STREAMLIT ---
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
-    [data-testid="stSidebar"] { background-color: #f0f2f6; }
     .stForm { background-color: #1c1f26 !important; border-radius: 10px !important; border: 1px solid #3d4450 !important; padding: 20px; }
     label p { color: #FF6B00 !important; font-weight: bold; font-size: 16px; }
-    h1, h2 { color: #FF6B00 !important; text-align: center; }
-    div.stButton > button { background-color: #ffffff !important; color: #000000 !important; font-weight: bold; width: 100%; height: 50px; }
+    h1 { color: #FF6B00 !important; text-align: center; font-size: 32px !important; }
     
-    #MainMenu {visibility: hidden;} /* Esconde o menu de 3 risquinhos do Streamlit */
-    footer {visibility: hidden;}    /* Esconde o rodapé */
+    /* ESCONDE O BOTÃO DA SETA E O MENU DE 3 RISCOS */
+    [data-testid="stSidebarNav"] {display: none;}
+    [data-testid="collapsedControl"] {display: none;}
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* Botão de Protocolo Branco conforme seu print */
+    div.stButton > button { background-color: #ffffff !important; color: #000000 !important; font-weight: bold; width: 100%; height: 50px; border: none; }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 3. CONFIGURAÇÕES ---
 API_URL = "https://sheetdb.io/api/v1/1soffxez5h6tb"
 SENHA_ADMIN = "infohelp2026"
-CHAVE_MESTRE = "admhelp" # Digite isso no campo secreto para ver o menu técnico
 MEU_WHATSAPP = "5515991172115"
 
-# --- 4. MENU LATERAL INTELIGENTE ---
-with st.sidebar:
-    st.markdown("<h1 style='font-size: 20px;'>INFOHELP</h1>", unsafe_allow_html=True)
-    
-    # Campo "invisível" para o técnico liberar o menu
-    acesso = st.text_input("Acesso Interno", type="password", help="Apenas para funcionários")
-    
-    if acesso == CHAVE_MESTRE:
-        st.success("Modo Técnico Ativo")
-        aba = st.radio("Navegação:", ["📝 Abrir Chamado", "🔒 Área Técnica"])
-    else:
-        aba = "📝 Abrir Chamado" # Força o cliente a ficar aqui
-        if acesso != "":
-            st.error("Chave incorreta")
+# --- 4. CONTROLE DE TELA (CLIENTE VS ADMIN) ---
+if 'modo' not in st.session_state:
+    st.session_state.modo = 'cliente'
 
-# --- 5. PÁGINA: ABRIR CHAMADO (O QUE O CLIENTE VÊ) ---
-if aba == "📝 Abrir Chamado":
+# --- 5. TELA DO CLIENTE (ABRIR CHAMADO) ---
+if st.session_state.modo == 'cliente':
     st.markdown("<h1>INFOHELP TATUÍ</h1>", unsafe_allow_html=True)
+    
     with st.form("novo_chamado", clear_on_submit=True):
         nome = st.text_input("Nome Completo")
-        col1, col2 = st.columns(2)
-        with col1: doc = st.text_input("CPF / CNPJ")
-        with col2: zap_cli = st.text_input("WhatsApp do Cliente")
+        
+        c1, c2 = st.columns(2)
+        with c1: doc = st.text_input("CPF / CNPJ")
+        with c2: zap_cli = st.text_input("WhatsApp do Cliente")
+        
         end = st.text_input("Endereço Completo")
         equi = st.text_input("Aparelho / Modelo")
         defe = st.text_area("Descrição do Defeito")
@@ -76,20 +71,44 @@ if aba == "📝 Abrir Chamado":
                         st.markdown(f'<a href="https://wa.me/{MEU_WHATSAPP}?text={urllib.parse.quote(texto)}" target="_blank" style="text-decoration:none;"><div style="background-color:#25D366; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold;">💬 ENVIAR PARA WHATSAPP</div></a>', unsafe_allow_html=True)
                 except: st.error("Erro de conexão.")
 
-# --- 6. PÁGINA: ÁREA TÉCNICA (SÓ APARECE COM A CHAVE MESTRE) ---
-elif aba == "🔒 Área Técnica" and acesso == CHAVE_MESTRE:
-    # Segunda camada de segurança: a senha que você já usava
-    senha_final = st.text_input("Senha de Gerência", type="password")
-    if senha_final == SENHA_ADMIN:
-        st.markdown("<h1>Painel de Controle</h1>", unsafe_allow_html=True)
-        try:
-            r = requests.get(f"{API_URL}?_={time.time()}")
-            if r.status_code == 200:
-                df = pd.DataFrame(r.json())
-                st.dataframe(df, use_container_width=True)
-                st.divider()
-                excluir = st.selectbox("Protocolo para remover:", df["Protocolo"].tolist())
-                if st.button("EXCLUIR REGISTRO"):
-                    requests.delete(f"{API_URL}/Protocolo/{excluir}")
-                    st.rerun()
-        except: st.error("Erro ao carregar dados.")
+    # BOTÃO SECRETO NO FINAL DA PÁGINA PARA VOCÊ ENTRAR
+    st.write("---")
+    col_secret, _ = st.columns([1, 4])
+    with col_secret:
+        if st.button("🔧", help="Acesso Técnico"): # Um ícone pequeno e discreto
+            st.session_state.modo = 'login'
+            st.rerun()
+
+# --- 6. TELA DE LOGIN (SÓ VOCÊ ACESSA) ---
+elif st.session_state.modo == 'login':
+    st.markdown("<h2>ACESSO RESTRITO</h2>", unsafe_allow_html=True)
+    senha = st.text_input("Digite a Senha de Admin", type="password")
+    col_l1, col_l2 = st.columns(2)
+    with col_l1:
+        if st.button("ENTRAR"):
+            if senha == SENHA_ADMIN:
+                st.session_state.modo = 'admin'
+                st.rerun()
+            else: st.error("Senha Incorreta")
+    with col_l2:
+        if st.button("VOLTAR"):
+            st.session_state.modo = 'cliente'
+            st.rerun()
+
+# --- 7. ÁREA TÉCNICA (EXIBIÇÃO DOS DADOS) ---
+elif st.session_state.modo == 'admin':
+    st.markdown("<h2>GERENCIAR CHAMADOS</h2>", unsafe_allow_html=True)
+    if st.button("SAIR / VOLTAR"):
+        st.session_state.modo = 'cliente'
+        st.rerun()
+        
+    try:
+        r = requests.get(f"{API_URL}?_={time.time()}")
+        df = pd.DataFrame(r.json())
+        st.dataframe(df, use_container_width=True)
+        st.divider()
+        excluir = st.selectbox("Protocolo para Excluir:", df["Protocolo"].tolist())
+        if st.button("EXCLUIR REGISTRO"):
+            requests.delete(f"{API_URL}/Protocolo/{excluir}")
+            st.rerun()
+    except: st.error("Erro ao carregar dados.")
