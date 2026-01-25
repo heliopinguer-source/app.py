@@ -12,13 +12,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. ESTILO CSS (Mantendo o padrão das suas imagens) ---
+# --- 2. ESTILO CSS ---
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
     .stForm { background-color: #1c1f26 !important; border-radius: 10px !important; border: 1px solid #3d4450 !important; padding: 20px; }
     label p { color: #FF6B00 !important; font-weight: bold; font-size: 16px; }
-    h1 { color: #FF6B00 !important; text-align: center; font-size: 32px !important; }
+    h1, h2 { color: #FF6B00 !important; text-align: center; }
     
     /* ESCONDE SIDEBAR E ELEMENTOS NATIVOS */
     [data-testid="stSidebarNav"] {display: none;}
@@ -70,15 +70,12 @@ if st.session_state.modo == 'cliente':
     with st.form("novo_chamado", clear_on_submit=True):
         nome = st.text_input("Nome Completo / Razão Social")
         
-        # Coluna Dupla para Documento e WhatsApp
         col1, col2 = st.columns(2)
         with col1: doc = st.text_input("CPF / CNPJ")
         with col2: zap_cli = st.text_input("WhatsApp do Cliente")
         
-        # Campo de Endereço (Ocupa a largura toda)
         end = st.text_input("Endereço Completo")
         
-        # Coluna Dupla para Equipamento
         col3, col4 = st.columns(2)
         with col3:
             tipo_equip = st.selectbox("Tipo de Equipamento", ["Notebook", "Apple", "Desktop", "Monitor", "Placa de Vídeo", "Outro"])
@@ -94,46 +91,27 @@ if st.session_state.modo == 'cliente':
             prot = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
             equip_final = f"{tipo_equip} - {modelo}"
             
-            # Dados para a planilha
             payload = {"data": [{
-                "Protocolo": prot, 
-                "Data": datetime.datetime.now().strftime("%d/%m/%Y"), 
-                "Cliente": nome, 
-                "Documento": doc, 
-                "WhatsApp": zap_cli, 
-                "Endereco": end, 
-                "Equipamento": equip_final, 
-                "Defeito": defe
+                "Protocolo": prot, "Data": datetime.datetime.now().strftime("%d/%m/%Y"), 
+                "Cliente": nome, "Documento": doc, "WhatsApp": zap_cli, 
+                "Endereco": end, "Equipamento": equip_final, "Defeito": defe
             }]}
             
             try:
                 res = requests.post(API_URL, json=payload)
                 if res.status_code in [200, 201]:
-                    # Texto que vai para o seu WhatsApp
-                    texto_zap = (f"*💻 INFOHELP - NOVA OS*\n\n"
-                                 f"*Protocolo:* {prot}\n"
-                                 f"*Cliente:* {nome}\n"
-                                 f"*Documento:* {doc}\n"
-                                 f"*WhatsApp:* {zap_cli}\n"
-                                 f"*Endereço:* {end}\n"
-                                 f"*Equipamento:* {equip_final}\n"
-                                 f"*Defeito:* {defe}")
-                    
+                    texto_zap = (f"*💻 INFOHELP - NOVA OS*\n\n*Protocolo:* {prot}\n*Cliente:* {nome}\n*WhatsApp:* {zap_cli}\n*Equipamento:* {equip_final}\n*Defeito:* {defe}")
                     modal_whatsapp(prot, texto_zap)
-                else:
-                    st.error("Erro ao registrar. Verifique as colunas da sua planilha.")
-            except:
-                st.error("Erro de conexão com o servidor.")
-        else:
-            st.warning("⚠️ Por favor, preencha Nome, WhatsApp e o Defeito.")
+                else: st.error("Erro ao registrar.")
+            except: st.error("Erro de conexão.")
+        else: st.warning("⚠️ Preencha Nome, WhatsApp e Defeito.")
 
-    # ACESSO ADM (🔧)
     st.write("---")
     if st.button("🔧"):
         st.session_state.modo = 'login'
         st.rerun()
 
-# --- 6. TELA DE LOGIN E ADMIN (Ocultos) ---
+# --- 6. TELA DE LOGIN ---
 elif st.session_state.modo == 'login':
     st.markdown("<h2>LOGIN TÉCNICO</h2>", unsafe_allow_html=True)
     senha = st.text_input("Senha", type="password")
@@ -141,19 +119,43 @@ elif st.session_state.modo == 'login':
         if senha == SENHA_ADMIN:
             st.session_state.modo = 'admin'
             st.rerun()
-        else: st.error("Senha incorreta")
+        else: st.error("Incorreta")
     if st.button("CANCELAR"):
         st.session_state.modo = 'cliente'
         st.rerun()
 
+# --- 7. ÁREA TÉCNICA (COM BOTÃO DE EXCLUIR DE VOLTA) ---
 elif st.session_state.modo == 'admin':
     st.markdown("<h2>GERENCIAR CHAMADOS</h2>", unsafe_allow_html=True)
     if st.button("VOLTAR AO FORMULÁRIO"):
         st.session_state.modo = 'cliente'
         st.rerun()
+    
     try:
+        # Puxa os dados atualizados
         r = requests.get(f"{API_URL}?_={time.time()}")
-        df = pd.DataFrame(r.json())
-        st.dataframe(df, use_container_width=True)
-    except:
-        st.error("Não foi possível carregar os dados.")
+        if r.status_code == 200:
+            dados = r.json()
+            if dados:
+                df = pd.DataFrame(dados)
+                st.dataframe(df, use_container_width=True)
+                
+                st.divider()
+                st.subheader("🗑️ Finalizar Atendimento")
+                # Menu suspenso para escolher qual protocolo apagar
+                lista_prot = df["Protocolo"].tolist()
+                excluir = st.selectbox("Selecione o Protocolo para EXCLUIR:", lista_prot)
+                
+                if st.button("APAGAR REGISTRO DEFINITIVAMENTE"):
+                    # Chamada DELETE para o SheetDB
+                    del_res = requests.delete(f"{API_URL}/Protocolo/{excluir}")
+                    if del_res.status_code in [200, 204]:
+                        st.success(f"Protocolo {excluir} removido!")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Erro ao excluir do banco de dados.")
+            else:
+                st.info("Nenhum chamado registrado na planilha.")
+    except Exception as e:
+        st.error(f"Erro ao carregar os dados: {e}")
