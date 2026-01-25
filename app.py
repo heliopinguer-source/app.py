@@ -3,13 +3,23 @@ import datetime
 import urllib.parse
 import requests
 import pandas as pd
+import time
 
-# 1. RESET DE CACHE
-st.cache_data.clear()
+# --- TRUQUE ANTI-SONO (PING) ---
+# Isso cria um pequeno loop que "conversa" com o servidor a cada 10 minutos
+def keep_alive():
+    if 'last_ping' not in st.session_state:
+        st.session_state.last_ping = time.time()
+    
+    # Se passou mais de 10 minutos, ele faz um pequeno toque no servidor
+    if time.time() - st.session_state.last_ping > 600:
+        requests.get("https://sheetdb.io/api/v1/1soffxez5h6tb", timeout=5)
+        st.session_state.last_ping = time.time()
 
+# --- CONFIGURAÇÃO VISUAL ---
 st.set_page_config(page_title="InfoHelp Tatuí", layout="wide", initial_sidebar_state="expanded")
+keep_alive() # Ativa o ping
 
-# 2. ESTILO VISUAL (Mantendo o original das suas fotos)
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
@@ -24,16 +34,16 @@ st.markdown("""
 # --- CONFIGURAÇÕES ---
 API_URL = "https://sheetdb.io/api/v1/1soffxez5h6tb"
 SENHA_ADMIN = "infohelp2026"
-MEU_WHATSAPP = "5515991172115" # Seu número configurado
+MEU_WHATSAPP = "5515991172115"
 
-# 3. MENU LATERAL
+# --- MENU LATERAL ---
 with st.sidebar:
     st.markdown("<h1>MENU</h1>", unsafe_allow_html=True)
     aba = st.radio("Selecione:", ["📝 Abrir Chamado", "🔒 Área Técnica"])
     st.divider()
     senha = st.text_input("Senha", type="password") if aba == "🔒 Área Técnica" else ""
 
-# 4. PÁGINA: ABRIR CHAMADO
+# --- PÁGINA: ABRIR CHAMADO ---
 if aba == "📝 Abrir Chamado":
     st.markdown("<h1>INFOHELP TATUÍ</h1>", unsafe_allow_html=True)
     with st.form("novo_chamado", clear_on_submit=True):
@@ -43,8 +53,8 @@ if aba == "📝 Abrir Chamado":
         with col1: doc = st.text_input("CPF / CNPJ")
         with col2: zap_cli = st.text_input("WhatsApp do Cliente")
         
-        # NOVO CAMPO DE ENDEREÇO
-        endereco = st.text_input("Endereço Completo")
+        # Campo de Endereço
+        end = st.text_input("Endereço Completo")
         
         equi = st.text_input("Aparelho / Modelo")
         defe = st.text_area("Descrição do Defeito")
@@ -58,7 +68,7 @@ if aba == "📝 Abrir Chamado":
                     "Cliente": nome, 
                     "Documento": doc, 
                     "WhatsApp": zap_cli, 
-                    "Endereco": endereco, # Enviando para a planilha
+                    "Endereco": end, 
                     "Equipamento": equi, 
                     "Defeito": defe
                 }]}
@@ -68,13 +78,13 @@ if aba == "📝 Abrir Chamado":
                     if res.status_code in [200, 201]:
                         st.success(f"OS #{prot} Gerada!")
                         
-                        # MENSAGEM ATUALIZADA COM ENDEREÇO E WHATSAPP DO CLIENTE
+                        # MENSAGEM COM ENDEREÇO E WHATSAPP DO CLIENTE
                         texto = (f"*💻 INFOHELP - NOVA OS*\n\n"
                                  f"*Protocolo:* {prot}\n"
                                  f"*Cliente:* {nome}\n"
                                  f"*Documento:* {doc}\n"
                                  f"*WhatsApp Cliente:* {zap_cli}\n"
-                                 f"*Endereço:* {endereco}\n"
+                                 f"*Endereço:* {end}\n"
                                  f"*Equipamento:* {equi}\n"
                                  f"*Defeito:* {defe}")
                         
@@ -85,16 +95,15 @@ if aba == "📝 Abrir Chamado":
                 except:
                     st.error("Falha de conexão.")
 
-# 5. PÁGINA: ÁREA TÉCNICA
+# --- PÁGINA: ÁREA TÉCNICA ---
 elif aba == "🔒 Área Técnica":
     if senha == SENHA_ADMIN:
         st.markdown("<h1>Gerenciar Chamados</h1>", unsafe_allow_html=True)
         try:
             r = requests.get(f"{API_URL}?_={datetime.datetime.now().timestamp()}")
             if r.status_code == 200:
-                dados = r.json()
-                if dados:
-                    df = pd.DataFrame(dados)
+                df = pd.DataFrame(r.json())
+                if not df.empty:
                     st.dataframe(df, use_container_width=True)
                     st.divider()
                     excluir = st.selectbox("Selecione o Protocolo para Excluir:", df["Protocolo"].tolist())
