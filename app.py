@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. ESTILO CSS (LIMPO E PROFISSIONAL) ---
+# --- 2. ESTILO CSS ---
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
@@ -32,13 +32,22 @@ st.markdown("""
         height: 50px; 
         border: none; 
     }
+    
+    /* Alerta de Finalização */
+    .alerta-final {
+        text-align: center;
+        background-color: #ff6b0022;
+        border: 2px dashed #FF6B00;
+        padding: 15px;
+        border-radius: 10px;
+        margin-top: 10px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 3. CONFIGURAÇÕES ---
 API_URL = "https://sheetdb.io/api/v1/1soffxez5h6tb"
 SENHA_ADMIN = "infohelp2026"
-# Número que recebe as mensagens da assistência
 WHATS_RECEPCAO = "5515991172115" 
 
 if 'modo' not in st.session_state:
@@ -64,7 +73,6 @@ if st.session_state.modo == 'cliente':
             modelo = st.text_input("Marca / Modelo")
             
         defe = st.text_area("Descrição do Defeito")
-        
         submit = st.form_submit_button("GERAR PROTOCOLO")
 
     if submit:
@@ -72,7 +80,6 @@ if st.session_state.modo == 'cliente':
             prot = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
             equip_final = f"{tipo_equip} - {modelo}"
             
-            # Salva na Planilha
             payload = {"data": [{
                 "Protocolo": prot, "Data": datetime.datetime.now().strftime("%d/%m/%Y"), 
                 "Cliente": nome, "Documento": doc, "WhatsApp": zap_cli, 
@@ -82,65 +89,65 @@ if st.session_state.modo == 'cliente':
             try:
                 res = requests.post(API_URL, json=payload)
                 if res.status_code in [200, 201]:
-                    st.balloons()
-                    st.success(f"✅ Protocolo {prot} Gerado com Sucesso!")
+                    # --- ANIMAÇÃO TEMA ELETRÔNICA ---
+                    st.snow() # Efeito de partículas
+                    st.toast('Processando reparo...', icon='📟')
                     
-                    # Mensagem formatada
+                    st.success(f"✅ Protocolo {prot} Registrado no Sistema!")
+                    
                     texto_zap = (f"*💻 NOVA OS INFOHELP*\n\n"
                                  f"*Protocolo:* {prot}\n"
                                  f"*Cliente:* {nome}\n"
-                                 f"*WhatsApp:* {zap_cli}\n"
                                  f"*Equipamento:* {equip_final}\n"
                                  f"*Defeito:* {defe}")
                     
-                    # Link "Inteligente" para evitar telas intermediárias
                     link_direto = f"https://api.whatsapp.com/send?phone={WHATS_RECEPCAO}&text={urllib.parse.quote(texto_zap)}"
                     
+                    # --- QUADRO DE AVISO FINAL ---
                     st.markdown(f"""
-                        <div style="text-align:center; padding:10px; border:2px solid #25D366; border-radius:10px; background-color:#1c1f26;">
-                            <p style="color:white; font-size:18px;"><b>QUASE LÁ!</b><br>Clique no botão abaixo para concluir o envio:</p>
+                        <div class="alerta-final">
+                            <h3 style="color: #FF6B00; margin-top: 0;">⚠️ ETAPA FINAL OBRIGATÓRIA</h3>
+                            <p style="color: white; font-size: 18px;">
+                                Para validar sua entrada na assistência, clique no botão verde abaixo e envie a mensagem.
+                            </p>
                             <a href="{link_direto}" target="_blank" style="text-decoration:none;">
-                                <div style="background-color:#25D366; color:white; padding:15px; border-radius:10px; text-align:center; font-weight:bold; font-size:20px;">
+                                <div style="background-color:#25D366; color:white; padding:18px; border-radius:10px; text-align:center; font-weight:bold; font-size:22px; border: 2px solid white;">
                                     💬 CONCLUIR NO WHATSAPP
                                 </div>
                             </a>
                         </div>
                     """, unsafe_allow_html=True)
                 else:
-                    st.error("Erro ao registrar os dados.")
+                    st.error("Erro técnico ao salvar.")
             except:
                 st.error("Erro de conexão.")
         else:
-            st.warning("⚠️ Por favor, preencha Nome, WhatsApp e Defeito.")
+            st.warning("⚠️ Preencha os campos obrigatórios.")
 
-    # ACESSO ADM (🔧)
     st.write("---")
-    col_secret, _ = st.columns([1, 15])
-    with col_secret:
-        if st.button("🔧"):
-            st.session_state.modo = 'login'
-            st.rerun()
+    if st.button("🔧"):
+        st.session_state.modo = 'login'
+        st.rerun()
 
-# --- 5. TELA DE LOGIN E ADMIN (Restante do código igual ao anterior) ---
+# --- 5. TELA DE LOGIN E ADMIN (Igual anterior) ---
 elif st.session_state.modo == 'login':
     st.markdown("<h2>LOGIN TÉCNICO</h2>", unsafe_allow_html=True)
     senha = st.text_input("Senha", type="password")
     if st.button("ACESSAR"):
         if senha == SENHA_ADMIN: st.session_state.modo = 'admin'; st.rerun()
-        else: st.error("Senha incorreta")
+        else: st.error("Incorreta")
     if st.button("CANCELAR"): st.session_state.modo = 'cliente'; st.rerun()
 
 elif st.session_state.modo == 'admin':
     st.markdown("<h2>GERENCIAR CHAMADOS</h2>", unsafe_allow_html=True)
-    if st.button("VOLTAR AO FORMULÁRIO"): st.session_state.modo = 'cliente'; st.rerun()
+    if st.button("VOLTAR"): st.session_state.modo = 'cliente'; st.rerun()
     try:
         r = requests.get(f"{API_URL}?_={time.time()}")
         df = pd.DataFrame(r.json())
         st.dataframe(df, use_container_width=True)
         if not df.empty:
             st.divider()
-            lista_prot = df["Protocolo"].tolist()
-            excluir = st.selectbox("Finalizar Atendimento:", lista_prot)
+            excluir = st.selectbox("Finalizar OS:", df["Protocolo"].tolist())
             if st.button("EXCLUIR REGISTRO"):
                 requests.delete(f"{API_URL}/Protocolo/{excluir}")
                 st.rerun()
