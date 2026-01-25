@@ -12,18 +12,18 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. ESTILO CSS (FOCO NO LAYOUT DOS BOTÕES) ---
+# --- 2. ESTILO CSS (PADRÃO GRAFITE E LARANJA) ---
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
     .stForm { background-color: #1c1f26 !important; border-radius: 10px !important; border: 1px solid #3d4450 !important; padding: 20px; }
-    label p { color: #FF6B00 !important; font-weight: bold; }
-    h1 { color: #FF6B00 !important; text-align: center; }
+    label p { color: #FF6B00 !important; font-weight: bold; font-size: 16px; }
+    h1, h2 { color: #FF6B00 !important; text-align: center; }
     
-    /* ESCONDE SIDEBAR E ELEMENTOS NATIVOS */
+    /* ESCONDE ELEMENTOS NATIVOS */
     [data-testid="stSidebarNav"], [data-testid="collapsedControl"], #MainMenu, footer {display: none;}
     
-    /* Botão Branco de Gerar Protocolo conforme seu print */
+    /* Botão Branco de Gerar Protocolo */
     div.stButton > button { 
         background-color: #ffffff !important; 
         color: #000000 !important; 
@@ -31,15 +31,6 @@ st.markdown("""
         width: 100%; 
         height: 50px; 
         border: none; 
-    }
-    
-    /* Quadro de Alerta do WhatsApp */
-    .alerta-zap {
-        text-align: center;
-        background-color: #1c1f26;
-        border: 2px solid #25D366;
-        padding: 10px;
-        border-radius: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -59,9 +50,9 @@ if st.session_state.modo == 'cliente':
     with st.form("novo_chamado", clear_on_submit=False):
         nome = st.text_input("Nome Completo / Razão Social")
         
-        c1, c2 = st.columns(2)
-        with c1: doc = st.text_input("CPF / CNPJ")
-        with c2: zap_cli = st.text_input("Seu WhatsApp")
+        col_doc, col_zap = st.columns(2)
+        with col_doc: doc = st.text_input("CPF / CNPJ")
+        with col_zap: zap_cli = st.text_input("Seu WhatsApp")
         
         end = st.text_input("Endereço Completo")
         
@@ -73,43 +64,49 @@ if st.session_state.modo == 'cliente':
             
         defe = st.text_area("Descrição do Defeito")
         
-        # --- ÁREA DOS BOTÕES LADO A LADO ---
+        # Área dos Botões Lado a Lado
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
             submit = st.form_submit_button("GERAR PROTOCOLO")
             
         with col_btn2:
-            # O botão de WhatsApp só aparece aqui depois que o cliente clica no primeiro
             placeholder_zap = st.empty()
 
-        # Lógica após clicar em Gerar Protocolo
         if submit:
             if nome and zap_cli and defe:
                 prot = f"IH-{datetime.datetime.now().strftime('%H%M%S')}"
                 equip_final = f"{tipo_equip} - {modelo}"
                 
-                # Salva na Planilha
+                # Dados para a Planilha
                 payload = {"data": [{
-                    "Protocolo": prot, "Data": datetime.datetime.now().strftime("%d/%m/%Y"), 
-                    "Cliente": nome, "Documento": doc, "WhatsApp": zap_cli, 
-                    "Endereco": end, "Equipamento": equip_final, "Defeito": defe
+                    "Protocolo": prot, 
+                    "Data": datetime.datetime.now().strftime("%d/%m/%Y"), 
+                    "Cliente": nome, 
+                    "Documento": doc, 
+                    "WhatsApp": zap_cli, 
+                    "Endereco": end, 
+                    "Equipamento": equip_final, 
+                    "Defeito": defe
                 }]}
                 
                 try:
                     res = requests.post(API_URL, json=payload)
                     if res.status_code in [200, 201]:
-                        # Mensagem curta de confirmação interna
-                        st.write(f"✅ Protocolo {prot} criado!")
+                        st.write(f"✅ Protocolo **{prot}** registrado com sucesso!")
                         
-                        texto_zap = (f"*💻 NOVA OS INFOHELP*\n"
+                        # Mensagem do WhatsApp com a ficha completa
+                        texto_zap = (f"*💻 NOVA OS INFOHELP*\n\n"
                                      f"*Protocolo:* {prot}\n"
                                      f"*Cliente:* {nome}\n"
+                                     f"*CPF/CNPJ:* {doc}\n"
+                                     f"*Endereço:* {end}\n"
+                                     f"*WhatsApp Cli:* {zap_cli}\n"
                                      f"*Equipamento:* {equip_final}\n"
                                      f"*Defeito:* {defe}")
                         
                         link_direto = f"https://api.whatsapp.com/send?phone={WHATS_RECEPCAO}&text={urllib.parse.quote(texto_zap)}"
                         
-                        # Coloca o botão do WhatsApp do lado do botão de envio
+                        # Aparece o botão verde ao lado do botão de gerar
                         with col_btn2:
                             st.markdown(f"""
                                 <a href="{link_direto}" target="_blank" style="text-decoration:none;">
@@ -119,32 +116,63 @@ if st.session_state.modo == 'cliente':
                                 </a>
                             """, unsafe_allow_html=True)
                         
-                        st.warning("⚠️ Você precisa clicar no botão verde acima para finalizar!")
+                        st.warning("⚠️ **Atenção:** Clique no botão verde acima para concluir o envio!")
                     else:
-                        st.error("Erro ao registrar.")
+                        st.error("Erro ao salvar os dados. Verifique a planilha.")
                 except:
-                    st.error("Erro de conexão.")
+                    st.error("Erro de conexão com o servidor.")
             else:
-                st.warning("Preencha Nome, WhatsApp e Defeito.")
+                st.warning("⚠️ Por favor, preencha o Nome, WhatsApp e o Defeito.")
 
-    # ACESSO ADM (🔧)
+    # Acesso Técnico Discreto
     st.write("---")
     if st.button("🔧"):
         st.session_state.modo = 'login'
         st.rerun()
 
-# --- TELA DE ADMIN (Mantida conforme anterior) ---
+# --- 5. TELA DE LOGIN ---
 elif st.session_state.modo == 'login':
-    senha = st.text_input("Senha", type="password")
+    st.markdown("<h2>LOGIN TÉCNICO</h2>", unsafe_allow_html=True)
+    senha = st.text_input("Senha de Acesso", type="password")
     if st.button("ACESSAR"):
-        if senha == SENHA_ADMIN: st.session_state.modo = 'admin'; st.rerun()
-elif st.session_state.modo == 'admin':
-    if st.button("VOLTAR"): st.session_state.modo = 'cliente'; st.rerun()
-    r = requests.get(f"{API_URL}?_={time.time()}")
-    df = pd.DataFrame(r.json())
-    st.dataframe(df, use_container_width=True)
-    if not df.empty:
-        excluir = st.selectbox("Excluir Protocolo:", df["Protocolo"].tolist())
-        if st.button("EXCLUIR"):
-            requests.delete(f"{API_URL}/Protocolo/{excluir}")
+        if senha == SENHA_ADMIN:
+            st.session_state.modo = 'admin'
             st.rerun()
+        else:
+            st.error("Senha incorreta!")
+    if st.button("CANCELAR"):
+        st.session_state.modo = 'cliente'
+        st.rerun()
+
+# --- 6. TELA ADMIN (GERENCIAR CHAMADOS) ---
+elif st.session_state.modo == 'admin':
+    st.markdown("<h2>GERENCIAR CHAMADOS</h2>", unsafe_allow_html=True)
+    if st.button("VOLTAR AO FORMULÁRIO"):
+        st.session_state.modo = 'cliente'
+        st.rerun()
+        
+    try:
+        # Puxa dados da planilha
+        r = requests.get(f"{API_URL}?_={time.time()}")
+        df = pd.DataFrame(r.json())
+        
+        if not df.empty:
+            st.dataframe(df, use_container_width=True)
+            
+            st.divider()
+            st.subheader("🗑️ Finalizar Registro")
+            lista_prot = df["Protocolo"].tolist()
+            excluir = st.selectbox("Selecione o Protocolo para apagar:", lista_prot)
+            
+            if st.button("EXCLUIR DEFINITIVAMENTE"):
+                del_res = requests.delete(f"{API_URL}/Protocolo/{excluir}")
+                if del_res.status_code in [200, 204]:
+                    st.success(f"Protocolo {excluir} removido!")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("Erro ao excluir.")
+        else:
+            st.info("Nenhuma ordem de serviço encontrada.")
+    except:
+        st.error("Não foi possível carregar os dados da planilha.")
