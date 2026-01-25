@@ -49,10 +49,10 @@ if st.session_state.modo == 'cliente':
         
         c1, c2 = st.columns(2)
         with c1: doc = st.text_input("CPF / CNPJ")
-        with c2: zap_cli = st.text_input("WhatsApp do Cliente")
+        with c2: zap_cli = st.text_input("WhatsApp + DDD")
         
         end = st.text_input("Endereço Completo")
-        equi = st.text_input("Aparelho / Modelo")
+        equi = st.text_input("Equipamento / Modelo")
         defe = st.text_area("Descrição do Defeito")
         
         if st.form_submit_button("GERAR PROTOCOLO"):
