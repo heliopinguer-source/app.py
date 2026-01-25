@@ -6,20 +6,27 @@ import pandas as pd
 import time
 
 # --- TRUQUE ANTI-SONO (PING) ---
-# Isso cria um pequeno loop que "conversa" com o servidor a cada 10 minutos
 def keep_alive():
     if 'last_ping' not in st.session_state:
         st.session_state.last_ping = time.time()
-    
-    # Se passou mais de 10 minutos, ele faz um pequeno toque no servidor
     if time.time() - st.session_state.last_ping > 600:
-        requests.get("https://sheetdb.io/api/v1/1soffxez5h6tb", timeout=5)
+        try:
+            requests.get("https://sheetdb.io/api/v1/1soffxez5h6tb", timeout=5)
+        except:
+            pass
         st.session_state.last_ping = time.time()
 
-# --- CONFIGURAÇÃO VISUAL ---
-st.set_page_config(page_title="InfoHelp Tatuí", layout="wide", initial_sidebar_state="expanded")
-keep_alive() # Ativa o ping
+# --- CONFIGURAÇÃO DA PÁGINA (MENU OCULTO POR PADRÃO) ---
+# initial_sidebar_state="collapsed" faz o menu sumir e aparecer só na seta
+st.set_page_config(
+    page_title="InfoHelp Tatuí", 
+    layout="wide", 
+    initial_sidebar_state="collapsed" 
+)
 
+keep_alive()
+
+# --- ESTILO VISUAL INFOHELP ---
 st.markdown("""
     <style>
     .stApp { background-color: #0E1117; }
@@ -53,8 +60,7 @@ if aba == "📝 Abrir Chamado":
         with col1: doc = st.text_input("CPF / CNPJ")
         with col2: zap_cli = st.text_input("WhatsApp do Cliente")
         
-        # Campo de Endereço
-        end = st.text_input("Endereço Completo")
+        end = st.text_input("Endereço Completo") # Campo solicitado
         
         equi = st.text_input("Aparelho / Modelo")
         defe = st.text_area("Descrição do Defeito")
